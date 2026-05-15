@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shi-Tao Chang</title>
+<style>
+  @font-face {
+    font-family: "Maple Mono";
+    src: url("fonts/MapleMonoNormal-NF-Regular.ttf") format("truetype");
+    font-weight: 400;
+  }
+
+  :root {
+    --red: #A4133C;
+    --blue: #1376A4;
+    --ink: #1A1A1A;
+    --paper: #fffefa;
+    --dash: #b8b2a4;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: var(--paper);
+    color: var(--ink);
+    font-family: "Maple Mono", "Courier New", monospace;
+    font-size: 12px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    text-align: center;
+  }
+
+  body {
+    max-width: 620px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* dashed divider — the core Vulfpeck move */
+  .rule {
+    color: var(--dash);
+    white-space: nowrap;
+    overflow: hidden;
+    user-select: none;
+    letter-spacing: 1px;
+    margin: 6px 0;
+  }
+
+  .header {
+    margin-bottom: 36px;
+    max-width: 360px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .name {
+    color: var(--red);
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: lowercase;
+  }
+
+  .tagline {
+    color: var(--blue);
+    margin: 4px 0 2px;
+    text-transform: lowercase;
+  }
+
+  section {
+    margin: 32px 0;
+  }
+
+  .section-label {
+    color: var(--red);
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+  }
+
+  p { margin-bottom: 12px; }
+
+  a {
+    color: var(--blue);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: border-color 0.15s;
+  }
+  a:hover { border-bottom-color: var(--blue); }
+
+  /* project / item rows — venue-style lines with arrows */
+  .row {
+    margin: 6px 0;
+    text-transform: lowercase;
+  }
+  .arrows {
+    color: var(--dash);
+    letter-spacing: -1px;
+    user-select: none;
+  }
+
+  .meta {
+    color: var(--dash);
+    text-transform: lowercase;
+    margin-top: 4px;
+  }
+
+  footer {
+    margin-top: 48px;
+    text-transform: lowercase;
+  }
+  footer .section-label { color: var(--blue); }
+
+  .copyright {
+    color: var(--dash);
+    margin-top: 24px;
+    font-size: 13px;
+  }
+
+  .rule-right {
+    display: flex;
+    overflow: hidden;
+  }
+  .rule-right .rule-fill {
+    flex: 1 1 auto;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .rule-right .rule-links {
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+
+  .entry { cursor: pointer; }
+  .entry .plus { color: var(--red); }
+
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(26,26,26,0.45);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+  }
+  .overlay.open { display: flex; }
+
+  .popup {
+    background: var(--paper);
+    border-left: 2px solid var(--red);
+    padding: 24px 28px;
+    max-width: 360px;
+    width: 90%;
+    text-align: left;
+    cursor: default;
+  }
+  .popup-title {
+    color: var(--red);
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  #popup-body { white-space: pre-line; }
+
+  .popup-sub {
+    color: var(--dash);
+    margin-bottom: 12px;
+    margin-top: 0;
+  }
+  .popup-close {
+    color: var(--dash);
+    margin-top: 16px;
+    cursor: pointer;
+    font-size: 11px;
+  }
+  .popup-close:hover { color: var(--ink); }
+
+  /* keep the dashed rules from overflowing awkwardly on mobile */
+  @media (max-width: 480px) {
+    body { font-size: 11px; padding: 32px 18px 64px; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="rule">--------------------------------------------------------------------------</div>
+    <div class="rule">--- <span class="name">Shi-Tao Chang</span> ---------------------------------------------------------</div>
+    <div class="rule">--------------------------------------------------------------------------</div>
+    <div class="rule rule-right"><span class="rule-fill">-------------------------------------------------------------------------- </span><span class="rule-links">- <a id="email-link" href="#">[email]</a> -- <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank">[resume]</a> ---</span></div>
+    <div class="rule">--------------------------------------------------------------------------</div>
+  </div>
+
+  <div class="tagline">cs / linguistics / geography</div>
+  <div class="meta">austin, tx</div>
+
+  <section>
+    <div class="section-label">ABOUT</div>
+    <p>learning about the world to maybe use a <span class="entry" data-title="sextant" data-sub="navigational instrument" data-img="https://dredge.wiki.gg/images/Sextant.png?3c8455"><u>sextant</u></span>.</p>
+    <p>interested in spatial datascience & human-centered geography.</p>
+    <p>currently doing research @ <a href="https://sites.utexas.edu/gisense/" target="_blank">GISense Lab</a></p>
+  </section>
+
+  <div class="rule">* * *</div>
+
+  <section>
+    <div class="section-label">EXPERIENCE</div>
+    <div class="entry row"
+      data-title="undergraduate research assistant"
+      data-sub="GISense Lab · Austin, TX · Mar 2026 — present"
+      data-body="· Reproduced and fine-tuned baseline models to generate landscapes from sound.&#10;· Developing and evaluated raw video datasets.&#10;· Currently engineering multimodal EEG models for human-centered applications.">
+      <span>research assistant · gisense lab</span>
+      <span class="entry-action">[<span class="plus">+</span>]</span>
+    </div>
+    <div class="entry row"
+      data-title="backend/ml engineer"
+      data-sub="TX Luminescence · Austin, TX · Sep 2025 — present"
+      data-body="· Developed back-end architecture for an AI-powered educational app for K–12 learning.&#10;· Integrated AI model with RAG to enhance app functionality and learning outcomes.&#10;· Flask, Supabase.">
+      <span>backend/ml engineer · tx luminescence</span>
+      <span class="entry-action">[<span class="plus">+</span>]</span>
+    </div>
+  </section>
+
+  <div class="rule">* * *</div>
+
+  <section>
+    <div class="section-label">PROJECTS</div>
+    <div class="entry row"
+      data-title="EcoScan"
+      data-sub="Python · YOLOv11 · Mar 2026"
+      data-body="· On-device waste detection app with FastAPI backend.&#10;· Fine-tuned YOLOv11 for waste classification — 24 recyclable and hazardous waste classes.&#10;· Placed top 30 out of 500+ teams at Woz Hackathon.">
+      <span>ecoscan</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/EcoScan" target="_blank" onclick="event.stopPropagation()">view</a></span>
+    </div>
+    <div class="entry row"
+      data-title="MyPersona"
+      data-sub="Python · Asyncio · Discord.py · Mar 2026"
+      data-body="· Real-time Discord bot generating persona-based replies.&#10;· Few-shot prompting engineered from real user message corpora.&#10;· Groq and Kagi APIs — 250+ languages and styles supported.">
+      <span>mypersona</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/MyPersona" target="_blank" onclick="event.stopPropagation()">view</a></span>
+    </div>
+    <div class="entry row"
+      data-title="ContextoSolver"
+      data-sub="Word2Vec · GloVe · FastText · SVD · NLP"
+      data-body="· Compared Word2Vec, GloVe, FastText, and SVD under the same training setup to test whether algorithm choice alone changes embedding geometry.&#10;· GloVe and SVD are strongest for Contexto-style navigation; Word2Vec performs best on word-similarity benchmarks.&#10;· Reproducible and controlled study; conclusions limited to one English corpus, fixed dimensions, and a capped vocabulary.">
+      <span>contextosolver</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/ContextoSolver" target="_blank" onclick="event.stopPropagation()">view</a></span>
+    </div>
+    <div class="entry row"
+      data-title="Wine Quality Classifier"
+      data-sub="Python · Pandas · OpenAI · Dec 2025"
+      data-body="· Classified wine quality using LLMs with few-shot prompting.&#10;· Prompt engineering for rapid labeling and result returning.&#10;· Data cleaning and CSV handling via Pandas dataframes.">
+      <span>wine quality classifier</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/Wine-Quality-Classifier" target="_blank" onclick="event.stopPropagation()">view</a></span>
+    </div>
+  </section>
+
+  <div class="rule">* * *</div>
+
+  <section>
+    <div class="section-label">UNI</div>
+    <div class="row">ut austin · co'29</div>
+    <div class="entry row"
+      data-title="DiRP · ULS · TX Luminescence"
+      data-sub="organizations"
+      data-body="· DiRP — Member (Aug 2025–present), Administrator (Apr 2026–present). Coordinated outbound sponsorship and fundraising email campaigns to corporate partners for CS Research organization.&#10;· ULS — Member (Aug 2025–present), Journal Club Manager (Apr 2026–present). Led paper discussions on language interpretation and grammatical rhetoric.&#10;· TX Luminescence — Backend/ML Engineer.">
+      <span>campus involvement</span><span class="entry-action"> [<span class="plus">+</span>]</span>
+    </div>
+    <div class="entry row"
+      data-title="relevant coursework"
+      data-sub="classes taken at ut"
+      data-body="· Machine Learning for Text Analysis&#10; · Data Structures&#10; · Discrete Math">
+      <span>relevant coursework</span><span class="entry-action"> [<span class="plus">+</span>]</span>
+    </div>
+  </section>
+
+  <div class="rule">* * *</div>
+
+  <section>
+    <div class="section-label">HONORS</div>
+    <div class="row">university honors 2025</div>
+    <div class="entry row"
+      data-title="$1500 research assistantship"
+      data-sub="scholarship"
+      data-body="· Received $1500 for summer 2026 research assistantship at GISense Lab.">
+      <span>$1500 research assistantship</span><span class="entry-action"> [<span class="plus">+</span>]</span>
+    </div>
+  </section>
+
+  <div class="rule">* * *</div>
+
+  <footer>
+    <div class="section-label">ELSEWHERE</div>
+    <div class="row"><a href="https://github.com/TaoTDM" target="_blank">github</a></div>
+    <div class="row"><a href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank">linkedin</a></div>
+  </footer>
+
+
+<div id="overlay" class="overlay">
+  <div class="popup" id="popup">
+    <div class="popup-title" id="popup-title"></div>
+    <div class="popup-sub" id="popup-sub"></div>
+    <p id="popup-body"></p>
+    <img id="popup-img" style="display:none; max-width:100%; margin-top:8px;" alt="">
+    <div class="popup-close" id="popup-close">[esc or click outside to close]</div>
+  </div>
+</div>
+
+<script>
+  (function() {
+    var u = 'tao.chang', d = 'utexas.edu';
+    document.getElementById('email-link').href = 'mailto:' + u + '@' + d;
+
+    var overlay = document.getElementById('overlay');
+    var popup   = document.getElementById('popup');
+
+    document.querySelectorAll('.entry').forEach(function(el) {
+      el.addEventListener('click', function(e) {
+        if (e.target.tagName === 'A') return;
+        document.getElementById('popup-title').textContent = el.dataset.title || '';
+        document.getElementById('popup-sub').textContent   = el.dataset.sub   || '';
+        var body = document.getElementById('popup-body');
+        var img  = document.getElementById('popup-img');
+        if (el.dataset.img) {
+          body.style.display = 'none';
+          img.src = el.dataset.img;
+          img.style.display = 'block';
+        } else {
+          img.style.display = 'none';
+          img.src = '';
+          body.style.display = '';
+          body.textContent = el.dataset.body || '';
+        }
+        overlay.classList.add('open');
+      });
+    });
+
+    overlay.addEventListener('click', function(e) {
+      if (!popup.contains(e.target)) overlay.classList.remove('open');
+    });
+    document.getElementById('popup-close').addEventListener('click', function() {
+      overlay.classList.remove('open');
+    });
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') overlay.classList.remove('open');
+    });
+  })();
+</script>
+</body>
+</html>
