@@ -235,6 +235,20 @@
       <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/EcoScan" target="_blank" onclick="event.stopPropagation()">view</a></span>
     </div>
     <div class="entry row"
+      data-title="ContextoSolver"
+      data-sub="Word2Vec · GloVe · FastText · SVD · NLP · Apr 2026"
+      data-body="· Compared Word2Vec, GloVe, FastText, and SVD under the same training setup to test whether algorithm choice alone changes embedding geometry.&#10;· GloVe and SVD are strongest for Contexto-style navigation; Word2Vec performs best on word-similarity benchmarks.&#10;· Reproducible and controlled study; conclusions limited to one English corpus, fixed dimensions, and a capped vocabulary.">
+      <span>contextosolver</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/ContextoSolver" target="_blank" onclick="event.stopPropagation()">view</a></span>
+    </div>
+    <div class="entry row"
+      data-title="TakeMeter"
+      data-sub="Python · DistilBERT · HuggingFace · Groq · Jun 2026"
+      data-body="· Fine-tuned distilbert-base-uncased on 202 hand-labeled UT Austin Discord posts across four discourse categories.&#10;· Found a zero-shot llama-3.3-70b baseline beat it 90.3% vs 71.0% — diagnosed the gap as a topical-keyword shortcut that collapses on function-defined labels.&#10;· Validated with Cohen's κ=0.869 inter-annotator agreement and confidence calibration (100% accuracy above 0.5 softmax).">
+      <span>takemeter</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/TakeMeter" target="_blank" onclick="event.stopPropagation()">view</a></span>
+    </div>
+    <div class="entry row"
       data-title="MyPersona"
       data-sub="Python · Asyncio · Discord.py · Mar 2026"
       data-body="· Real-time Discord bot generating persona-based replies.&#10;· Few-shot prompting engineered from real user message corpora.&#10;· Groq and Kagi APIs — 250+ languages and styles supported.">
@@ -242,18 +256,11 @@
       <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/MyPersona" target="_blank" onclick="event.stopPropagation()">view</a></span>
     </div>
     <div class="entry row"
-      data-title="ContextoSolver"
-      data-sub="Word2Vec · GloVe · FastText · SVD · NLP"
-      data-body="· Compared Word2Vec, GloVe, FastText, and SVD under the same training setup to test whether algorithm choice alone changes embedding geometry.&#10;· GloVe and SVD are strongest for Contexto-style navigation; Word2Vec performs best on word-similarity benchmarks.&#10;· Reproducible and controlled study; conclusions limited to one English corpus, fixed dimensions, and a capped vocabulary.">
-      <span>contextosolver</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/ContextoSolver" target="_blank" onclick="event.stopPropagation()">view</a></span>
-    </div>
-    <div class="entry row"
-      data-title="Wine Quality Classifier"
-      data-sub="Python · Pandas · OpenAI · Dec 2025"
-      data-body="· Classified wine quality using LLMs with few-shot prompting.&#10;· Prompt engineering for rapid labeling and result returning.&#10;· Data cleaning and CSV handling via Pandas dataframes.">
-      <span>wine quality classifier</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/Wine-Quality-Classifier" target="_blank" onclick="event.stopPropagation()">view</a></span>
+      data-title="UTfoods"
+      data-sub="Python · Sentence-Transformers · Groq · Gradio · Jun 2026"
+      data-body="· RAG QA over 60 review-level chunks scraped from Reddit, Yelp, Discord, and local news on UT Austin dining.&#10;· MiniLM embeddings with cosine retrieval, grounded llama-3.3-70b generation at temp 0.2 with out-of-scope refusal.&#10;· Inline source-file citations suppressed on refusals, served through a Gradio query interface.">
+      <span>UTfoods</span>
+      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/ai201-project1-unofficial-guide-starter/tree/main" target="_blank" onclick="event.stopPropagation()">view</a></span>
     </div>
   </section>
 
@@ -280,13 +287,19 @@
 
   <section>
     <div class="section-label">HONORS</div>
-    <div class="row">university honors 2025</div>
+    <div class="entry row"
+      data-title="ut summer research scholar"
+      data-sub="research program"
+      data-body="· Selected into <a href='https://undergraduates.utexas.edu/academics/undergraduate-research/conducting-research/summer-research-scholars-programs' target='_blank'>undergraduate research professional development program</a> for summer 2026.">
+      <span>ut summer research scholar</span><span class="entry-action"> [<span class="plus">+</span>]</span>
+    </div>
     <div class="entry row"
       data-title="$1500 research assistantship"
       data-sub="scholarship"
       data-body="· Received $1500 for summer 2026 research assistantship at GISense Lab.">
       <span>$1500 research assistantship</span><span class="entry-action"> [<span class="plus">+</span>]</span>
     </div>
+    <div class="row">university honors 2025</div>
   </section>
 
   <div class="rule">* * *</div>
@@ -331,7 +344,7 @@
           img.style.display = 'none';
           img.src = '';
           body.style.display = '';
-          body.textContent = el.dataset.body || '';
+          body.innerHTML = el.dataset.body || '';
         }
         overlay.classList.add('open');
       });
