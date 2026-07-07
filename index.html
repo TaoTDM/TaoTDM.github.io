@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shi-Tao Chang</title>
+<title>Shi-Tao Chang — chart of works</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚓</text></svg>">
 <style>
+  @import url('https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&display=swap');
+
   @font-face {
     font-family: "Maple Mono";
     src: url("fonts/MapleMonoNormal-NF-Regular.ttf") format("truetype");
@@ -17,6 +20,22 @@
     --ink: #1A1A1A;
     --paper: #fffefa;
     --dash: #b8b2a4;
+    --grid: rgba(19, 118, 164, 0.07);
+    --grid-major: rgba(19, 118, 164, 0.13);
+    --card-bg: rgba(164, 19, 60, 0.03);
+    --serif: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  }
+
+  /* night watch — red-light navigation mode, like a ship's bridge after dark */
+  html[data-watch="night"] {
+    --red: #e05577;
+    --blue: #5fb0d5;
+    --ink: #e8dcd2;
+    --paper: #14100e;
+    --dash: #56493f;
+    --grid: rgba(224, 85, 119, 0.05);
+    --grid-major: rgba(224, 85, 119, 0.10);
+    --card-bg: rgba(224, 85, 119, 0.05);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -25,339 +44,1017 @@
     background: var(--paper);
     color: var(--ink);
     font-family: "Maple Mono", "Courier New", monospace;
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: 12.5px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
-    text-align: center;
+    transition: background 0.5s, color 0.5s;
   }
 
-  body {
-    max-width: 620px;
+  ::selection { background: var(--red); color: var(--paper); }
+
+  /* ================= graticule ================= */
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(var(--grid) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid) 1px, transparent 1px),
+      linear-gradient(var(--grid-major) 1px, transparent 1px),
+      linear-gradient(90deg, var(--grid-major) 1px, transparent 1px);
+    background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+  }
+
+  /* ================= edge rulers ================= */
+  .ruler {
+    position: fixed;
+    z-index: 50;
+    background: var(--paper);
+    transition: background 0.5s;
+  }
+  .ruler-top {
+    top: 0; left: 0; right: 0;
+    height: 15px;
+    border-bottom: 1px solid var(--ink);
+    background-image:
+      repeating-linear-gradient(90deg, var(--dash) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 80px);
+    background-size: 100% 5px, 100% 11px;
+    background-position: bottom left, bottom left;
+    background-repeat: repeat-x;
+  }
+  .ruler-left {
+    top: 0; bottom: 0; left: 0;
+    width: 15px;
+    border-right: 1px solid var(--ink);
+    background-image:
+      repeating-linear-gradient(0deg, var(--dash) 0 1px, transparent 1px 8px),
+      repeating-linear-gradient(0deg, var(--ink) 0 1px, transparent 1px 80px);
+    background-size: 5px 100%, 11px 100%;
+    background-position: right top, right top;
+    background-repeat: repeat-y;
+  }
+  .ruler-corner {
+    top: 0; left: 0;
+    width: 15px; height: 15px;
+    border-right: 1px solid var(--ink);
+    border-bottom: 1px solid var(--ink);
+    z-index: 51;
+  }
+
+  /* red position marker riding the left ruler as you scroll */
+  #lat-marker {
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 52;
+    width: 15px;
+    text-align: right;
+    color: var(--red);
+    font-size: 10px;
+    line-height: 10px;
+    pointer-events: none;
+    transition: top 0.1s linear;
+  }
+
+  /* crop marks, like a printed sheet */
+  .crop {
+    position: fixed;
+    width: 14px; height: 14px;
+    z-index: 49;
+    pointer-events: none;
+  }
+  .crop-tr { top: 24px; right: 10px; border-top: 1px solid var(--dash); border-right: 1px solid var(--dash); }
+  .crop-br { bottom: 40px; right: 10px; border-bottom: 1px solid var(--dash); border-right: 1px solid var(--dash); }
+
+  /* ================= page column ================= */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 760px;
     margin: 0 auto;
-    padding: 48px 24px 80px;
+    padding: 56px 28px 120px 40px;
   }
 
-  /* dashed divider — the core Vulfpeck move */
-  .rule {
-    color: var(--dash);
-    white-space: nowrap;
-    overflow: hidden;
-    user-select: none;
-    letter-spacing: 1px;
-    margin: 6px 0;
+  /* ================= cartouche ================= */
+  .cartouche {
+    border: 1px solid var(--ink);
+    outline: 1px solid var(--ink);
+    outline-offset: 3px;
+    padding: 30px 26px 24px;
+    text-align: center;
+    margin: 8px 4px 44px;
+    position: relative;
+    background: var(--paper);
+    transition: background 0.5s;
   }
-
-  .header {
-    margin-bottom: 36px;
-    max-width: 360px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .name {
+  .cartouche::before, .cartouche::after {
+    content: "✦";
+    position: absolute;
+    top: -9px;
     color: var(--red);
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-transform: lowercase;
+    background: var(--paper);
+    padding: 0 6px;
+    font-size: 11px;
+    transition: background 0.5s;
   }
+  .cartouche::before { left: 22px; }
+  .cartouche::after { right: 22px; }
 
-  .tagline {
-    color: var(--blue);
-    margin: 4px 0 2px;
-    text-transform: lowercase;
-  }
-
-  section {
-    margin: 32px 0;
-  }
-
-  .section-label {
-    color: var(--red);
-    font-weight: bold;
-    letter-spacing: 2px;
+  .chart-no {
     text-transform: uppercase;
+    letter-spacing: 4px;
+    font-size: 10px;
+    color: var(--dash);
+  }
+  .chart-title {
+    font-family: var(--serif);
+    font-size: 44px;
+    line-height: 1.1;
+    font-weight: 400;
+    color: var(--red);
+    margin: 10px 0 2px;
+  }
+  .chart-sub {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 16px;
+    color: var(--blue);
     margin-bottom: 14px;
   }
+  .chart-coords {
+    font-size: 11px;
+    letter-spacing: 1px;
+    color: var(--ink);
+    margin-bottom: 4px;
+  }
+  .chart-coords b { color: var(--red); font-weight: normal; }
+  .chart-links {
+    margin-top: 12px;
+    font-size: 11.5px;
+    letter-spacing: 1px;
+  }
+  .chart-links a { margin: 0 8px; cursor: pointer; }
 
-  p { margin-bottom: 12px; }
+  /* converging routes drawing */
+  #routes { display: block; margin: 14px auto 2px; overflow: visible; }
+  #routes .course {
+    fill: none;
+    stroke: var(--blue);
+    stroke-width: 1.2;
+    stroke-dasharray: 4 4;
+    stroke-dashoffset: 240;
+    animation: sail 2.4s ease forwards 0.4s;
+  }
+  #routes .course:nth-of-type(2) { animation-delay: 0.7s; }
+  #routes .course:nth-of-type(3) { animation-delay: 1.0s; }
+  @keyframes sail { to { stroke-dashoffset: 0; } }
+  #routes .port { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
+  #routes .here { fill: var(--red); }
+  #routes text {
+    font-family: "Maple Mono", monospace;
+    font-size: 9px;
+    fill: var(--dash);
+    text-transform: lowercase;
+  }
+  #routes .here-label { fill: var(--red); }
+
+  /* scale bar — also used as the section divider */
+  .scalebar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 40px auto;
+    user-select: none;
+  }
+  .scalebar i {
+    width: 42px; height: 6px;
+    border: 1px solid var(--ink);
+    border-right: none;
+  }
+  .scalebar i:nth-child(odd) { background: var(--ink); }
+  .scalebar i:last-of-type { border-right: 1px solid var(--ink); }
+  .scalebar em {
+    font-style: normal;
+    font-size: 10px;
+    color: var(--dash);
+    margin-left: 12px;
+    letter-spacing: 1px;
+  }
+  .cartouche .scalebar { margin: 18px auto 0; }
+
+  /* ================= plates (sections) ================= */
+  .plate {
+    display: grid;
+    grid-template-columns: 132px 1fr;
+    gap: 20px;
+    margin: 44px 0;
+    scroll-margin-top: 40px;
+  }
+  .plate-label {
+    text-align: right;
+    border-right: 2px solid var(--red);
+    padding-right: 14px;
+  }
+  .plate-label .num {
+    display: block;
+    font-family: var(--serif);
+    font-size: 26px;
+    color: var(--red);
+    line-height: 1;
+  }
+  .plate-label .cap {
+    display: block;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 10px;
+    color: var(--ink);
+    margin-top: 6px;
+  }
+  .plate-label .obs {
+    display: block;
+    font-size: 9.5px;
+    color: var(--dash);
+    margin-top: 4px;
+    font-style: italic;
+    font-family: var(--serif);
+  }
+  .plate-body { text-align: left; min-width: 0; }
+  .plate-body > p { margin-bottom: 10px; max-width: 52ch; }
+
+  /* reveal on scroll */
+  .reveal { opacity: 0; transform: translateY(12px); transition: opacity 0.7s ease, transform 0.7s ease; }
+  .reveal.in { opacity: 1; transform: none; }
 
   a {
     color: var(--blue);
     text-decoration: none;
-    border-bottom: 1px solid transparent;
-    transition: border-color 0.15s;
+    border-bottom: 1px dotted var(--blue);
+    transition: color 0.15s, border-color 0.15s;
   }
-  a:hover { border-bottom-color: var(--blue); }
+  a:hover { color: var(--red); border-bottom-color: var(--red); }
 
-  /* project / item rows — venue-style lines with arrows */
-  .row {
-    margin: 6px 0;
-    text-transform: lowercase;
-  }
-  .arrows {
-    color: var(--dash);
-    letter-spacing: -1px;
-    user-select: none;
-  }
-
-  .meta {
-    color: var(--dash);
-    text-transform: lowercase;
-    margin-top: 4px;
-  }
-
-  footer {
-    margin-top: 48px;
-    text-transform: lowercase;
-  }
-  footer .section-label { color: var(--blue); }
-
-  .copyright {
-    color: var(--dash);
-    margin-top: 24px;
-    font-size: 13px;
-  }
-
-  .rule-right {
+  /* ================= soundings (entry rows) ================= */
+  details.fix { margin: 2px 0; }
+  details.fix summary {
+    list-style: none;
+    cursor: pointer;
     display: flex;
-    overflow: hidden;
+    align-items: baseline;
+    gap: 8px;
+    padding: 4px 2px;
   }
-  .rule-right .rule-fill {
-    flex: 1 1 auto;
-    overflow: hidden;
-    white-space: nowrap;
-  }
-  .rule-right .rule-links {
+  details.fix summary::-webkit-details-marker { display: none; }
+  details.fix summary .mark {
+    color: var(--red);
     flex: 0 0 auto;
-    white-space: nowrap;
+    transition: transform 0.3s ease;
+    display: inline-block;
+  }
+  details.fix[open] summary .mark { transform: rotate(90deg); }
+  details.fix summary .idx {
+    color: var(--dash);
+    font-size: 10px;
+    flex: 0 0 auto;
+  }
+  details.fix summary .nm {
+    flex: 0 0 auto;
+    text-transform: lowercase;
+  }
+  details.fix summary:hover .nm { color: var(--blue); }
+  details.fix summary .leader {
+    flex: 1 1 auto;
+    border-bottom: 1px dotted var(--dash);
+    transform: translateY(-3px);
+    min-width: 16px;
+  }
+  details.fix summary .dt {
+    flex: 0 0 auto;
+    color: var(--dash);
+    font-size: 10.5px;
+    text-transform: lowercase;
+  }
+  details.fix summary .ext {
+    flex: 0 0 auto;
+    font-size: 10.5px;
   }
 
-  .entry { cursor: pointer; }
-  .entry .plus { color: var(--red); }
+  .log {
+    border-left: 2px solid var(--red);
+    background: var(--card-bg);
+    margin: 6px 0 12px 18px;
+    padding: 10px 14px;
+    max-width: 56ch;
+    animation: surface 0.35s ease;
+  }
+  @keyframes surface {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: none; }
+  }
+  .log .stamp {
+    font-size: 10px;
+    color: var(--dash);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+  .log ul { list-style: none; }
+  .log li { margin: 3px 0; padding-left: 14px; text-indent: -14px; }
+  .log li::before { content: "▸ "; color: var(--red); font-size: 9px; }
 
+  .plainrow { margin: 4px 0; text-transform: lowercase; }
+  .plainrow .idx { color: var(--dash); font-size: 10px; margin-right: 8px; }
+
+  /* ================= legend / footer ================= */
+  .legend {
+    border: 1px solid var(--ink);
+    padding: 16px 20px;
+    margin-top: 56px;
+    position: relative;
+  }
+  .legend .legend-cap {
+    position: absolute;
+    top: -8px; left: 16px;
+    background: var(--paper);
+    padding: 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 10px;
+    color: var(--red);
+    transition: background 0.5s;
+  }
+  .legend table { border-collapse: collapse; width: 100%; }
+  .legend td { padding: 3px 6px; font-size: 11.5px; }
+  .legend td.sym { color: var(--red); width: 30px; text-align: center; }
+  .legend td.what { color: var(--dash); width: 40%; }
+
+  .colophon {
+    text-align: center;
+    margin-top: 30px;
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 13px;
+    color: var(--dash);
+  }
+  .colophon .flourish { color: var(--red); font-style: normal; }
+
+  /* ================= compass rose ================= */
+  #compass {
+    position: fixed;
+    right: 26px;
+    bottom: 52px;
+    z-index: 60;
+    opacity: 0.9;
+    pointer-events: none;
+  }
+  #compass circle, #compass line { stroke: var(--dash); fill: none; }
+  #compass text {
+    font-family: "Maple Mono", monospace;
+    font-size: 8px;
+    fill: var(--dash);
+  }
+  #compass text.north { fill: var(--red); }
+  /* rotation is driven every frame by a JS spring (see script), not CSS,
+     so it can overshoot and settle like a real pendulum */
+  #needle { transform-origin: 45px 45px; }
+  #needle .n-half { fill: var(--red); }
+  #needle .s-half { fill: var(--paper); stroke: var(--ink); stroke-width: 0.6; }
+
+  /* ================= status bar ================= */
+  #statusbar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    z-index: 70;
+    background: var(--paper);
+    border-top: 1px solid var(--ink);
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 5px 14px 5px 22px;
+    font-size: 10.5px;
+    letter-spacing: 1px;
+    color: var(--dash);
+    transition: background 0.5s;
+  }
+  #statusbar .pos b { color: var(--blue); font-weight: normal; }
+  #statusbar .mid { color: var(--dash); }
+  #statusbar .tick { color: var(--red); }
+
+  /* ================= sextant inset ================= */
   .overlay {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(26,26,26,0.45);
-    z-index: 100;
+    background: rgba(26,26,26,0.5);
+    z-index: 300;
     align-items: center;
     justify-content: center;
   }
   .overlay.open { display: flex; }
-
-  .popup {
+  .inset {
     background: var(--paper);
-    border-left: 2px solid var(--red);
-    padding: 24px 28px;
-    max-width: 360px;
+    border: 1px solid var(--ink);
+    outline: 1px solid var(--ink);
+    outline-offset: 3px;
+    padding: 22px 26px;
+    max-width: 340px;
     width: 90%;
-    text-align: left;
-    cursor: default;
+    text-align: center;
   }
-  .popup-title {
+  .inset .inset-cap {
+    font-family: var(--serif);
+    font-size: 22px;
     color: var(--red);
-    font-weight: bold;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin-bottom: 6px;
   }
-  #popup-body { white-space: pre-line; }
+  .inset .inset-sub {
+    font-family: var(--serif);
+    font-style: italic;
+    color: var(--dash);
+    margin-bottom: 10px;
+  }
+  .inset img { max-width: 60%; }
+  .inset .close { color: var(--dash); margin-top: 12px; cursor: pointer; font-size: 10.5px; }
+  .inset .close:hover { color: var(--ink); }
 
-  .popup-sub {
-    color: var(--dash);
-    margin-bottom: 12px;
-    margin-top: 0;
-  }
-  .popup-close {
-    color: var(--dash);
-    margin-top: 16px;
-    cursor: pointer;
+  /* copied toast */
+  #toast {
+    position: fixed;
+    bottom: 44px;
+    left: 50%;
+    transform: translate(-50%, 8px);
+    background: var(--paper);
+    border: 1px solid var(--red);
+    color: var(--red);
+    padding: 4px 14px;
     font-size: 11px;
+    letter-spacing: 1px;
+    z-index: 310;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s, transform 0.25s;
   }
-  .popup-close:hover { color: var(--ink); }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-  /* keep the dashed rules from overflowing awkwardly on mobile */
-  @media (max-width: 480px) {
-    body { font-size: 11px; padding: 32px 18px 64px; }
+  /* ================= responsive ================= */
+  @media (max-width: 640px) {
+    .ruler, .crop, #lat-marker, #compass { display: none; }
+    main { padding: 28px 16px 90px; }
+    .chart-title { font-size: 32px; }
+    .plate { grid-template-columns: 1fr; gap: 8px; }
+    .plate-label {
+      text-align: left;
+      border-right: none;
+      border-bottom: 1px solid var(--red);
+      padding: 0 0 6px;
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+    .plate-label .obs { margin-left: auto; }
+    #statusbar .pos { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      animation-delay: 0s !important;
+      transition-duration: 0.01ms !important;
+    }
+    .reveal { opacity: 1; transform: none; }
+    #routes .course { stroke-dashoffset: 0; }
   }
 </style>
 </head>
 <body>
 
-  <div class="header">
-    <div class="rule">--------------------------------------------------------------------------</div>
-    <div class="rule">--- <span class="name">Shi-Tao Chang</span> ---------------------------------------------------------</div>
-    <div class="rule">--------------------------------------------------------------------------</div>
-    <div class="rule rule-right"><span class="rule-fill">-------------------------------------------------------------------------- </span><span class="rule-links">- <a id="email-link" href="#">[email]</a> -- <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank">[resume]</a> ---</span></div>
-    <div class="rule">--------------------------------------------------------------------------</div>
+  <div class="ruler ruler-top"></div>
+  <div class="ruler ruler-left"></div>
+  <div class="ruler ruler-corner"></div>
+  <div id="lat-marker">◂</div>
+  <div class="crop crop-tr"></div>
+  <div class="crop crop-br"></div>
+
+  <main>
+
+    <!-- ============ cartouche ============ -->
+    <header class="cartouche">
+      <div class="chart-no">chart nº 3 · works &amp; undertakings</div>
+      <h1 class="chart-title">Shi-Tao Chang</h1>
+      <div class="chart-sub">being a faithful survey of code, language &amp; land</div>
+      <div class="chart-coords">lat <b>30°17′N</b> · lon <b>097°44′W</b> · austin, texas</div>
+
+      <svg id="routes" width="320" height="86" viewBox="0 0 320 86" aria-hidden="true">
+        <path class="course" d="M88,14 C140,12 182,30 236,52" pathLength="240"/>
+        <path class="course" d="M84,46 C140,46 185,49 236,52" pathLength="240"/>
+        <path class="course" d="M88,76 C145,82 185,66 236,52" pathLength="240"/>
+        <circle class="port" cx="88" cy="14" r="3"/>
+        <circle class="port" cx="84" cy="46" r="3"/>
+        <circle class="port" cx="88" cy="76" r="3"/>
+        <text x="78" y="17" text-anchor="end">cs</text>
+        <text x="74" y="49" text-anchor="end">linguistics</text>
+        <text x="78" y="79" text-anchor="end">geography</text>
+        <path class="here" d="M236,44 l2.4,5 5.4,0.6 -4,3.8 1,5.4 -4.8,-2.6 -4.8,2.6 1,-5.4 -4,-3.8 5.4,-0.6 z"/>
+        <text class="here-label" x="250" y="56">you are here</text>
+      </svg>
+
+      <div class="chart-links">
+        <a id="email-link">[email]</a>
+        <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank">[resume]</a>
+        <a id="watch-toggle">[night watch]</a>
+      </div>
+
+      <div class="scalebar" aria-hidden="true">
+        <i></i><i></i><i></i><i></i>
+        <em>scale of miles, more or less</em>
+      </div>
+    </header>
+
+    <!-- ============ plate i — about ============ -->
+    <section class="plate reveal" id="about">
+      <div class="plate-label">
+        <span class="num">I</span>
+        <span class="cap">About</span>
+        <span class="obs">obs. at first light</span>
+      </div>
+      <div class="plate-body">
+        <p>learning about the world to maybe use a sextant.</p>
+        <p>interested in spatial datascience, neuro ai, &amp; human-centered geography.</p>
+        <p>currently doing geo ai research @ <a href="https://sites.utexas.edu/gisense/" target="_blank">GISense Lab</a></p>
+      </div>
+    </section>
+
+    <!-- ============ plate ii — experience ============ -->
+    <section class="plate reveal" id="experience">
+      <div class="plate-label">
+        <span class="num">II</span>
+        <span class="cap">Experience</span>
+        <span class="obs">bearings taken</span>
+      </div>
+      <div class="plate-body">
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">01</span>
+            <span class="nm">research assistant · gisense lab</span>
+            <span class="leader"></span>
+            <span class="dt">mar 2026 —</span>
+          </summary>
+          <div class="log">
+            <div class="stamp">gisense lab · austin, tx · fix nº 01</div>
+            <ul>
+              <li>Reproduced and fine-tuned baseline models to generate landscapes from sound.</li>
+              <li>Developing and evaluated raw video datasets.</li>
+              <li>Currently engineering multimodal EEG models for human-centered applications.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">02</span>
+            <span class="nm">backend/ml engineer · tx luminescence</span>
+            <span class="leader"></span>
+            <span class="dt">sep 2025 —</span>
+          </summary>
+          <div class="log">
+            <div class="stamp">tx luminescence · austin, tx · fix nº 02</div>
+            <ul>
+              <li>Developed back-end architecture for an AI-powered educational app for K–12 learning.</li>
+              <li>Integrated AI model with RAG to enhance app functionality and learning outcomes.</li>
+              <li>Flask, Supabase.</li>
+            </ul>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <div class="scalebar reveal" aria-hidden="true"><i></i><i></i><i></i><i></i><em>five fathoms on</em></div>
+
+    <!-- ============ plate iii — projects ============ -->
+    <section class="plate reveal" id="projects">
+      <div class="plate-label">
+        <span class="num">III</span>
+        <span class="cap">Projects</span>
+        <span class="obs">soundings, in order taken</span>
+      </div>
+      <div class="plate-body">
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">01</span>
+            <span class="nm">ecoscan</span>
+            <span class="leader"></span>
+            <span class="dt">mar 2026</span>
+            <span class="ext"><a href="https://github.com/TaoTDM/EcoScan" target="_blank">⚓</a></span>
+          </summary>
+          <div class="log">
+            <div class="stamp">python · yolov11 · sounding nº 01</div>
+            <ul>
+              <li>On-device waste detection app with FastAPI backend.</li>
+              <li>Fine-tuned YOLOv11 for waste classification — 24 recyclable and hazardous waste classes.</li>
+              <li>Placed top 30 out of 500+ teams at Woz Hackathon.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">02</span>
+            <span class="nm">contextosolver</span>
+            <span class="leader"></span>
+            <span class="dt">apr 2026</span>
+            <span class="ext"><a href="https://github.com/TaoTDM/ContextoSolver" target="_blank">⚓</a></span>
+          </summary>
+          <div class="log">
+            <div class="stamp">word2vec · glove · fasttext · svd · sounding nº 02</div>
+            <ul>
+              <li>Compared Word2Vec, GloVe, FastText, and SVD under the same training setup to test whether algorithm choice alone changes embedding geometry.</li>
+              <li>GloVe and SVD are strongest for Contexto-style navigation; Word2Vec performs best on word-similarity benchmarks.</li>
+              <li>Reproducible and controlled study; conclusions limited to one English corpus, fixed dimensions, and a capped vocabulary.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">03</span>
+            <span class="nm">takemeter</span>
+            <span class="leader"></span>
+            <span class="dt">jun 2026</span>
+            <span class="ext"><a href="https://github.com/TaoTDM/TakeMeter" target="_blank">⚓</a></span>
+          </summary>
+          <div class="log">
+            <div class="stamp">python · distilbert · huggingface · groq · sounding nº 03</div>
+            <ul>
+              <li>Fine-tuned distilbert-base-uncased on 202 hand-labeled UT Austin Discord posts across four discourse categories.</li>
+              <li>Found a zero-shot llama-3.3-70b baseline beat it 90.3% vs 71.0% — diagnosed the gap as a topical-keyword shortcut that collapses on function-defined labels.</li>
+              <li>Validated with Cohen's κ=0.869 inter-annotator agreement and confidence calibration (100% accuracy above 0.5 softmax).</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">04</span>
+            <span class="nm">mypersona</span>
+            <span class="leader"></span>
+            <span class="dt">mar 2026</span>
+            <span class="ext"><a href="https://github.com/TaoTDM/MyPersona" target="_blank">⚓</a></span>
+          </summary>
+          <div class="log">
+            <div class="stamp">python · asyncio · discord.py · sounding nº 04</div>
+            <ul>
+              <li>Real-time Discord bot generating persona-based replies.</li>
+              <li>Few-shot prompting engineered from real user message corpora.</li>
+              <li>Groq and Kagi APIs — 250+ languages and styles supported.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">05</span>
+            <span class="nm">utfoods</span>
+            <span class="leader"></span>
+            <span class="dt">jun 2026</span>
+            <span class="ext"><a href="https://github.com/TaoTDM/ai201-project1-unofficial-guide-starter/tree/main" target="_blank">⚓</a></span>
+          </summary>
+          <div class="log">
+            <div class="stamp">python · sentence-transformers · groq · gradio · sounding nº 05</div>
+            <ul>
+              <li>RAG QA over 60 review-level chunks scraped from Reddit, Yelp, Discord, and local news on UT Austin dining.</li>
+              <li>MiniLM embeddings with cosine retrieval, grounded llama-3.3-70b generation at temp 0.2 with out-of-scope refusal.</li>
+              <li>Inline source-file citations suppressed on refusals, served through a Gradio query interface.</li>
+            </ul>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <div class="scalebar reveal" aria-hidden="true"><i></i><i></i><i></i><i></i><em>steady as she goes</em></div>
+
+    <!-- ============ plate iv — uni ============ -->
+    <section class="plate reveal" id="uni">
+      <div class="plate-label">
+        <span class="num">IV</span>
+        <span class="cap">Uni</span>
+        <span class="obs">port of registry</span>
+      </div>
+      <div class="plate-body">
+        <div class="plainrow"><span class="idx">⚑</span>ut austin · co'29</div>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">01</span>
+            <span class="nm">campus involvement</span>
+            <span class="leader"></span>
+            <span class="dt">dirp · uls · txl</span>
+          </summary>
+          <div class="log">
+            <div class="stamp">organizations · mustered aboard</div>
+            <ul>
+              <li>DiRP — Member (Aug 2025–present), Administrator (Apr 2026–present). Coordinated outbound sponsorship and fundraising email campaigns to corporate partners for CS Research organization.</li>
+              <li>ULS — Member (Aug 2025–present), Journal Club Manager (Apr 2026–present). Led paper discussions on language interpretation and grammatical rhetoric.</li>
+              <li>TX Luminescence — Backend/ML Engineer.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">02</span>
+            <span class="nm">relevant coursework</span>
+            <span class="leader"></span>
+            <span class="dt">ut</span>
+          </summary>
+          <div class="log">
+            <div class="stamp">classes taken at ut</div>
+            <ul>
+              <li>Machine Learning for Text Analysis</li>
+              <li>Data Structures</li>
+              <li>Discrete Math</li>
+            </ul>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
+    <!-- ============ plate v — honors ============ -->
+    <section class="plate reveal" id="honors">
+      <div class="plate-label">
+        <span class="num">V</span>
+        <span class="cap">Honors</span>
+        <span class="obs">colours hoisted</span>
+      </div>
+      <div class="plate-body">
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">01</span>
+            <span class="nm">ut summer research scholar</span>
+            <span class="leader"></span>
+            <span class="dt">summer 2026</span>
+          </summary>
+          <div class="log">
+            <div class="stamp">research program</div>
+            <ul>
+              <li>Selected into <a href="https://undergraduates.utexas.edu/academics/undergraduate-research/conducting-research/summer-research-scholars-programs" target="_blank">undergraduate research professional development program</a> for summer 2026.</li>
+            </ul>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">02</span>
+            <span class="nm">$1500 research assistantship</span>
+            <span class="leader"></span>
+            <span class="dt">summer 2026</span>
+          </summary>
+          <div class="log">
+            <div class="stamp">scholarship</div>
+            <ul>
+              <li>Received $1500 for summer 2026 research assistantship at GISense Lab.</li>
+            </ul>
+          </div>
+        </details>
+
+        <div class="plainrow"><span class="idx">★</span>university honors 2025</div>
+      </div>
+    </section>
+
+    <!-- ============ legend ============ -->
+    <footer class="legend reveal">
+      <div class="legend-cap">Legend &amp; Key</div>
+      <table>
+        <tr><td class="sym">⚓</td><td><a href="https://github.com/TaoTDM" target="_blank">github</a></td><td class="what">safe harbour for code</td></tr>
+        <tr><td class="sym">🔗</td><td><a href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank">linkedin</a></td><td class="what">signal flags &amp; hailing</td></tr>
+        <tr><td class="sym">✉️</td><td><a id="email-link-2">email</a></td><td class="what">by albatross, allow 2–3 days</td></tr>
+        <tr><td class="sym">🪝</td><td>instruments</td><td class="what">type "sextant" to inspect</td></tr>
+      </table>
+      <div class="colophon">
+        <span class="flourish">❦</span> surveyed &amp; drawn by s.t. chang, austin, in the year 2026 <span class="flourish">❦</span>
+      </div>
+    </footer>
+
+  </main>
+
+  <!-- compass rose -->
+  <svg id="compass" width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
+    <circle cx="45" cy="45" r="34" stroke-width="1"/>
+    <circle cx="45" cy="45" r="28" stroke-width="0.5" stroke-dasharray="2 3"/>
+    <line x1="45" y1="8" x2="45" y2="16"/>
+    <line x1="45" y1="74" x2="45" y2="82"/>
+    <line x1="8" y1="45" x2="16" y2="45"/>
+    <line x1="74" y1="45" x2="82" y2="45"/>
+    <text class="north" x="42" y="7">N</text>
+    <text x="42.5" y="89">S</text>
+    <text x="0" y="48">W</text>
+    <text x="85" y="48">E</text>
+    <g id="needle">
+      <polygon class="n-half" points="45,20 49,45 45,45 41,45"/>
+      <polygon class="s-half" points="45,70 49,45 45,45 41,45"/>
+      <circle cx="45" cy="45" r="2.4" fill="var(--red)" stroke="none"/>
+    </g>
+  </svg>
+
+  <!-- status bar -->
+  <div id="statusbar">
+    <span class="pos">cursor <b id="pos-lat">30°16′N</b> <b id="pos-lon">097°44′W</b></span>
+    <span class="mid" id="sheet">sheet 1 of 1 · fair weather</span>
+    <span>ship's time <span class="tick" id="clock">--:--:--</span></span>
   </div>
 
-  <div class="tagline">cs / linguistics / geography</div>
-  <div class="meta">austin, tx</div>
-
-  <section>
-    <div class="section-label">ABOUT</div>
-    <p>learning about the world to maybe use a <span class="entry" data-title="sextant" data-sub="navigational instrument" data-img="https://dredge.wiki.gg/images/Sextant.png?3c8455"><u>sextant</u></span>.</p>
-    <p>interested in spatial datascience & human-centered geography.</p>
-    <p>currently doing research @ <a href="https://sites.utexas.edu/gisense/" target="_blank">GISense Lab</a></p>
-  </section>
-
-  <div class="rule">* * *</div>
-
-  <section>
-    <div class="section-label">EXPERIENCE</div>
-    <div class="entry row"
-      data-title="undergraduate research assistant"
-      data-sub="GISense Lab · Austin, TX · Mar 2026 — present"
-      data-body="· Reproduced and fine-tuned baseline models to generate landscapes from sound.&#10;· Developing and evaluated raw video datasets.&#10;· Currently engineering multimodal EEG models for human-centered applications.">
-      <span>research assistant · gisense lab</span>
-      <span class="entry-action">[<span class="plus">+</span>]</span>
+  <!-- sextant inset -->
+  <div id="overlay" class="overlay">
+    <div class="inset" id="inset">
+      <div class="inset-cap">The Sextant</div>
+      <div class="inset-sub">an instrument for finding oneself</div>
+      <img src="https://dredge.wiki.gg/images/Sextant.png?3c8455" alt="a sextant">
+      <div class="close" id="inset-close">[esc or click away to stow]</div>
     </div>
-    <div class="entry row"
-      data-title="backend/ml engineer"
-      data-sub="TX Luminescence · Austin, TX · Sep 2025 — present"
-      data-body="· Developed back-end architecture for an AI-powered educational app for K–12 learning.&#10;· Integrated AI model with RAG to enhance app functionality and learning outcomes.&#10;· Flask, Supabase.">
-      <span>backend/ml engineer · tx luminescence</span>
-      <span class="entry-action">[<span class="plus">+</span>]</span>
-    </div>
-  </section>
-
-  <div class="rule">* * *</div>
-
-  <section>
-    <div class="section-label">PROJECTS</div>
-    <div class="entry row"
-      data-title="EcoScan"
-      data-sub="Python · YOLOv11 · Mar 2026"
-      data-body="· On-device waste detection app with FastAPI backend.&#10;· Fine-tuned YOLOv11 for waste classification — 24 recyclable and hazardous waste classes.&#10;· Placed top 30 out of 500+ teams at Woz Hackathon.">
-      <span>ecoscan</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/EcoScan" target="_blank" onclick="event.stopPropagation()">view</a></span>
-    </div>
-    <div class="entry row"
-      data-title="ContextoSolver"
-      data-sub="Word2Vec · GloVe · FastText · SVD · NLP · Apr 2026"
-      data-body="· Compared Word2Vec, GloVe, FastText, and SVD under the same training setup to test whether algorithm choice alone changes embedding geometry.&#10;· GloVe and SVD are strongest for Contexto-style navigation; Word2Vec performs best on word-similarity benchmarks.&#10;· Reproducible and controlled study; conclusions limited to one English corpus, fixed dimensions, and a capped vocabulary.">
-      <span>contextosolver</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/ContextoSolver" target="_blank" onclick="event.stopPropagation()">view</a></span>
-    </div>
-    <div class="entry row"
-      data-title="TakeMeter"
-      data-sub="Python · DistilBERT · HuggingFace · Groq · Jun 2026"
-      data-body="· Fine-tuned distilbert-base-uncased on 202 hand-labeled UT Austin Discord posts across four discourse categories.&#10;· Found a zero-shot llama-3.3-70b baseline beat it 90.3% vs 71.0% — diagnosed the gap as a topical-keyword shortcut that collapses on function-defined labels.&#10;· Validated with Cohen's κ=0.869 inter-annotator agreement and confidence calibration (100% accuracy above 0.5 softmax).">
-      <span>takemeter</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/TakeMeter" target="_blank" onclick="event.stopPropagation()">view</a></span>
-    </div>
-    <div class="entry row"
-      data-title="MyPersona"
-      data-sub="Python · Asyncio · Discord.py · Mar 2026"
-      data-body="· Real-time Discord bot generating persona-based replies.&#10;· Few-shot prompting engineered from real user message corpora.&#10;· Groq and Kagi APIs — 250+ languages and styles supported.">
-      <span>mypersona</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/MyPersona" target="_blank" onclick="event.stopPropagation()">view</a></span>
-    </div>
-    <div class="entry row"
-      data-title="UTfoods"
-      data-sub="Python · Sentence-Transformers · Groq · Gradio · Jun 2026"
-      data-body="· RAG QA over 60 review-level chunks scraped from Reddit, Yelp, Discord, and local news on UT Austin dining.&#10;· MiniLM embeddings with cosine retrieval, grounded llama-3.3-70b generation at temp 0.2 with out-of-scope refusal.&#10;· Inline source-file citations suppressed on refusals, served through a Gradio query interface.">
-      <span>UTfoods</span>
-      <span class="entry-action">[<span class="plus">+</span>] · <a href="https://github.com/TaoTDM/ai201-project1-unofficial-guide-starter/tree/main" target="_blank" onclick="event.stopPropagation()">view</a></span>
-    </div>
-  </section>
-
-  <div class="rule">* * *</div>
-
-  <section>
-    <div class="section-label">UNI</div>
-    <div class="row">ut austin · co'29</div>
-    <div class="entry row"
-      data-title="DiRP · ULS · TX Luminescence"
-      data-sub="organizations"
-      data-body="· DiRP — Member (Aug 2025–present), Administrator (Apr 2026–present). Coordinated outbound sponsorship and fundraising email campaigns to corporate partners for CS Research organization.&#10;· ULS — Member (Aug 2025–present), Journal Club Manager (Apr 2026–present). Led paper discussions on language interpretation and grammatical rhetoric.&#10;· TX Luminescence — Backend/ML Engineer.">
-      <span>campus involvement</span><span class="entry-action"> [<span class="plus">+</span>]</span>
-    </div>
-    <div class="entry row"
-      data-title="relevant coursework"
-      data-sub="classes taken at ut"
-      data-body="· Machine Learning for Text Analysis&#10; · Data Structures&#10; · Discrete Math">
-      <span>relevant coursework</span><span class="entry-action"> [<span class="plus">+</span>]</span>
-    </div>
-  </section>
-
-  <div class="rule">* * *</div>
-
-  <section>
-    <div class="section-label">HONORS</div>
-    <div class="entry row"
-      data-title="ut summer research scholar"
-      data-sub="research program"
-      data-body="· Selected into <a href='https://undergraduates.utexas.edu/academics/undergraduate-research/conducting-research/summer-research-scholars-programs' target='_blank'>undergraduate research professional development program</a> for summer 2026.">
-      <span>ut summer research scholar</span><span class="entry-action"> [<span class="plus">+</span>]</span>
-    </div>
-    <div class="entry row"
-      data-title="$1500 research assistantship"
-      data-sub="scholarship"
-      data-body="· Received $1500 for summer 2026 research assistantship at GISense Lab.">
-      <span>$1500 research assistantship</span><span class="entry-action"> [<span class="plus">+</span>]</span>
-    </div>
-    <div class="row">university honors 2025</div>
-  </section>
-
-  <div class="rule">* * *</div>
-
-  <footer>
-    <div class="section-label">ELSEWHERE</div>
-    <div class="row"><a href="https://github.com/TaoTDM" target="_blank">github</a></div>
-    <div class="row"><a href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank">linkedin</a></div>
-  </footer>
-
-
-<div id="overlay" class="overlay">
-  <div class="popup" id="popup">
-    <div class="popup-title" id="popup-title"></div>
-    <div class="popup-sub" id="popup-sub"></div>
-    <p id="popup-body"></p>
-    <img id="popup-img" style="display:none; max-width:100%; margin-top:8px;" alt="">
-    <div class="popup-close" id="popup-close">[esc or click outside to close]</div>
   </div>
-</div>
+
+  <div id="toast">address copied</div>
 
 <script>
   (function() {
-    var u = 'tao.chang', d = 'utexas.edu';
-    document.getElementById('email-link').href = 'mailto:' + u + '@' + d;
+    var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    var overlay = document.getElementById('overlay');
-    var popup   = document.getElementById('popup');
+    /* ---- night watch toggle ---- */
+    var watch = document.getElementById('watch-toggle');
+    function setWatch(w) {
+      if (w === 'night') {
+        document.documentElement.setAttribute('data-watch', 'night');
+        watch.textContent = '[day watch]';
+      } else {
+        document.documentElement.removeAttribute('data-watch');
+        watch.textContent = '[night watch]';
+      }
+      try { localStorage.setItem('v3-watch', w); } catch (e) {}
+    }
+    try { if (localStorage.getItem('v3-watch') === 'night') setWatch('night'); } catch (e) {}
+    watch.addEventListener('click', function() {
+      setWatch(document.documentElement.hasAttribute('data-watch') ? 'day' : 'night');
+    });
 
-    document.querySelectorAll('.entry').forEach(function(el) {
-      el.addEventListener('click', function(e) {
-        if (e.target.tagName === 'A') return;
-        document.getElementById('popup-title').textContent = el.dataset.title || '';
-        document.getElementById('popup-sub').textContent   = el.dataset.sub   || '';
-        var body = document.getElementById('popup-body');
-        var img  = document.getElementById('popup-img');
-        if (el.dataset.img) {
-          body.style.display = 'none';
-          img.src = el.dataset.img;
-          img.style.display = 'block';
-        } else {
-          img.style.display = 'none';
-          img.src = '';
-          body.style.display = '';
-          body.innerHTML = el.dataset.body || '';
+    /* ---- email: copy with toast ---- */
+    var email = 'tao.chang' + '@' + 'utexas.edu';
+    var toast = document.getElementById('toast');
+    var toastTimer;
+    function copyEmail(e) {
+      var link = e.currentTarget;
+      link.setAttribute('href', 'mailto:' + email);
+      if (!navigator.clipboard) return;
+      e.preventDefault();
+      navigator.clipboard.writeText(email).then(function() {
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 1600);
+      });
+    }
+    ['email-link', 'email-link-2'].forEach(function(id) {
+      var el = document.getElementById(id);
+      el.setAttribute('href', 'mailto:' + email);
+      el.addEventListener('click', copyEmail);
+    });
+
+    /* ---- reveal on scroll ---- */
+    var revealer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(en) {
+        if (en.isIntersecting) {
+          en.target.classList.add('in');
+          revealer.unobserve(en.target);
         }
-        overlay.classList.add('open');
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.reveal').forEach(function(el) { revealer.observe(el); });
+
+    /* ---- scroll: compass bearing (spring-damped pendulum) + ruler marker ----
+       The needle doesn't jump straight to its target angle. Every animation
+       frame it's pulled toward the target by a spring and slowed by damping,
+       so a fast scroll makes it swing past the resting bearing and wobble
+       back — same physics whether that happens mid-scroll or right at the
+       very top/bottom of the page, no special-casing needed. */
+    var needle = document.getElementById('needle');
+    var latMarker = document.getElementById('lat-marker');
+    var bearing = { angle: 0, vel: 0, target: 0 };
+    var springRunning = false;
+    var STIFFNESS = 0.04;   // how hard the spring pulls toward the target
+    var DAMPING = 0.79;     // fraction of velocity kept each frame (lower = settles faster, less swing)
+
+    function stepSpring() {
+      var diff = bearing.target - bearing.angle;
+      bearing.vel = (bearing.vel + diff * STIFFNESS) * DAMPING;
+      bearing.angle += bearing.vel;
+      needle.style.transform = 'rotate(' + bearing.angle + 'deg)';
+      if (Math.abs(diff) > 0.05 || Math.abs(bearing.vel) > 0.05) {
+        requestAnimationFrame(stepSpring);
+      } else {
+        bearing.angle = bearing.target;
+        bearing.vel = 0;
+        needle.style.transform = 'rotate(' + bearing.angle + 'deg)';
+        springRunning = false;
+      }
+    }
+
+    function onScroll() {
+      var h = document.documentElement;
+      var max = h.scrollHeight - h.clientHeight;
+      var p = max > 0 ? h.scrollTop / max : 0;
+      latMarker.style.top = (p * (h.clientHeight - 12)) + 'px';
+      if (reduced) {
+        needle.style.transform = 'rotate(' + (p * 360) + 'deg)';
+        return;
+      }
+      bearing.target = p * 360;
+      if (!springRunning) {
+        springRunning = true;
+        requestAnimationFrame(stepSpring);
+      }
+    }
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    onScroll();
+
+    /* ---- pointer position as coordinates near austin ---- */
+    var posLat = document.getElementById('pos-lat');
+    var posLon = document.getElementById('pos-lon');
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    function dm(v) {
+      var d = Math.floor(Math.abs(v));
+      var m = Math.round((Math.abs(v) - d) * 60);
+      if (m === 60) { d++; m = 0; }
+      return d + '°' + pad(m) + '′';
+    }
+    var pending = false;
+    document.addEventListener('mousemove', function(e) {
+      if (pending) return;
+      pending = true;
+      requestAnimationFrame(function() {
+        pending = false;
+        var lat = 30.2672 + (0.5 - e.clientY / window.innerHeight) * 0.4;
+        var lon = -97.7431 + (e.clientX / window.innerWidth - 0.5) * 0.4;
+        posLat.textContent = dm(lat) + 'N';
+        posLon.textContent = '0' + dm(-lon) + 'W';
       });
     });
 
-    overlay.addEventListener('click', function(e) {
-      if (!popup.contains(e.target)) overlay.classList.remove('open');
+    /* ---- ship's time (austin) ---- */
+    var clock = document.getElementById('clock');
+    var fmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
-    document.getElementById('popup-close').addEventListener('click', function() {
-      overlay.classList.remove('open');
+    function tickClock() { clock.textContent = fmt.format(new Date()); }
+    tickClock();
+    setInterval(tickClock, 1000);
+
+    /* ---- only one log open per plate feels tidier ---- */
+    document.querySelectorAll('.plate-body').forEach(function(body) {
+      body.addEventListener('toggle', function(e) {
+        if (!e.target.open) return;
+        /* restart the surfacing animation explicitly — relying on the
+           display:none -> block switch to replay it is flaky once other
+           overlays/animations have run */
+        var log = e.target.querySelector('.log');
+        if (log) {
+          log.style.animation = 'none';
+          void log.offsetWidth;
+          log.style.animation = '';
+        }
+        body.querySelectorAll('details.fix[open]').forEach(function(d) {
+          if (d !== e.target) d.open = false;
+        });
+      }, true);
     });
+
+    /* ---- sextant easter egg ---- */
+    var overlay = document.getElementById('overlay');
+    var inset = document.getElementById('inset');
+    var buffer = '';
     document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') overlay.classList.remove('open');
+      if (e.key === 'Escape') { overlay.classList.remove('open'); return; }
+      if (overlay.classList.contains('open')) return;
+      if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key.length === 1) {
+        buffer = (buffer + e.key.toLowerCase()).slice(-7);
+        if (buffer === 'sextant') {
+          buffer = '';
+          overlay.classList.add('open');
+        }
+      }
+    });
+    overlay.addEventListener('click', function(e) {
+      if (!inset.contains(e.target)) overlay.classList.remove('open');
+    });
+    document.getElementById('inset-close').addEventListener('click', function() {
+      overlay.classList.remove('open');
     });
   })();
 </script>
