@@ -87,6 +87,49 @@
     background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
   }
 
+  /* ================= live currents ================= */
+  #current-field {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+    opacity: var(--current-opacity, 0.72);
+    transition: opacity 0.35s;
+  }
+  #current-lines path,
+  #current-wake-lines path {
+    fill: none;
+    stroke: var(--blue);
+    stroke-linecap: round;
+    stroke-dasharray: 15 23;
+    vector-effect: non-scaling-stroke;
+  }
+  #current-lines path {
+    stroke-width: 0.8;
+    stroke-opacity: 0.105;
+  }
+  #current-wake-lines path {
+    stroke-width: 1.15;
+    stroke-opacity: 0.34;
+  }
+  #current-bearing,
+  #current-wake-bearing {
+    transform-box: view-box;
+    transform-origin: 500px 500px;
+    transition: transform 1.4s cubic-bezier(.2,.7,.2,1);
+  }
+  #current-wake-layer {
+    opacity: var(--wake-opacity, 0);
+    transition: opacity 0.22s;
+  }
+  html[data-watch="night"] #current-lines path,
+  html[data-watch="night"] #current-wake-lines path {
+    stroke: var(--red);
+  }
+
   /* ================= edge rulers ================= */
   .ruler {
     position: fixed;
@@ -620,6 +663,23 @@
     fill: var(--dash);
   }
   #compass text.north { fill: var(--red); }
+  #wind-ring {
+    transform-box: view-box;
+    transform-origin: 45px 45px;
+    transition: transform 1.4s cubic-bezier(.2,.7,.2,1), opacity 0.5s;
+  }
+  #wind-ring .wind-orbit {
+    stroke: var(--blue);
+    stroke-width: 0.7;
+    stroke-dasharray: 1.5 4;
+    opacity: 0.65;
+  }
+  #wind-ring .wind-arrow {
+    fill: var(--blue);
+    stroke: none;
+  }
+  html[data-watch="night"] #wind-ring .wind-orbit { stroke: var(--red); }
+  html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
   /* rotation is driven every frame by a JS spring (see script), not CSS,
      so it can overshoot and settle like a real pendulum */
   #needle { transform-origin: 45px 45px; }
@@ -841,6 +901,8 @@
     }
     .reveal { opacity: 1; transform: none; }
     #routes .course { stroke-dashoffset: 0; }
+    #current-lines path { stroke-dasharray: none; stroke-opacity: 0.075; }
+    #current-wake-layer { display: none; }
   }
 
   /* ================= print: the chart on actual paper ================= */
@@ -865,7 +927,7 @@
       font-size: 11px;
     }
     /* every fixed/floating fixture and interactive-only chrome is dropped */
-    .ruler, .crop, #lat-marker, #compass, #statusbar,
+    .ruler, .crop, #lat-marker, #compass, #statusbar, #current-field,
     #overlay, #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
     .travel-toggle, #routes { display: none !important; }
     body::before, body::after { display: none !important; }
@@ -895,6 +957,25 @@
   <div id="lat-marker" aria-hidden="true">◂</div>
   <div class="crop crop-tr" aria-hidden="true"></div>
   <div class="crop crop-br" aria-hidden="true"></div>
+
+  <svg id="current-field" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
+    <defs>
+      <radialGradient id="current-wake-gradient">
+        <stop offset="0" stop-color="white" stop-opacity="1"/>
+        <stop offset="0.45" stop-color="white" stop-opacity="0.72"/>
+        <stop offset="1" stop-color="black" stop-opacity="0"/>
+      </radialGradient>
+      <mask id="current-wake-mask" x="0" y="0" width="1000" height="1000"
+            maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
+        <rect width="1000" height="1000" fill="black"/>
+        <circle id="current-wake-spot" cx="-250" cy="-250" r="190" fill="url(#current-wake-gradient)"/>
+      </mask>
+    </defs>
+    <g id="current-bearing"><g id="current-lines"></g></g>
+    <g id="current-wake-layer" mask="url(#current-wake-mask)">
+      <g id="current-wake-bearing"><g id="current-wake-lines"></g></g>
+    </g>
+  </svg>
 
   <main id="main">
 
@@ -1282,6 +1363,7 @@
     <details class="notices reveal">
       <summary><span class="chev">▸</span>Notice to Mariners<span class="count">chart corrections</span></summary>
       <ul class="notice-list">
+        <li><b>corr. nº 6</b> <span class="ndate">· jul 2026 —</span> live currents entered from the weather station; wind ring fitted to the compass; passing wakes now stir the chart.</li>
         <li><b>corr. nº 5</b> <span class="ndate">· jul 2026 —</span> chart workings refitted; states and countries answer the helm again; compass restored to follow the full passage.</li>
         <li><b>corr. nº 4</b> <span class="ndate">· jul 2026 —</span> digital passages logged; soundings sounded; ship's log now keeps local time.</li>
         <li><b>corr. nº 3</b> <span class="ndate">· jul 2026 —</span> plate vi entered: chart of travels, soundings &amp; ship's log.</li>
@@ -1294,6 +1376,10 @@
 
   <!-- compass rose -->
   <svg id="compass" width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
+    <g id="wind-ring">
+      <circle class="wind-orbit" cx="45" cy="45" r="39"/>
+      <path class="wind-arrow" d="M45,0.8 L48.2,7.2 L45,5.5 L41.8,7.2 Z"/>
+    </g>
     <circle cx="45" cy="45" r="34" stroke-width="1"/>
     <circle cx="45" cy="45" r="28" stroke-width="0.5" stroke-dasharray="2 3"/>
     <line x1="45" y1="8" x2="45" y2="16"/>
@@ -1448,6 +1534,127 @@
     }, { threshold: 0.08 });
     document.querySelectorAll('.reveal').forEach(function(el) { revealer.observe(el); });
 
+    /* ---- live currents: weather bearing + pointer/scroll wake ---- */
+    function initCurrents() {
+      var field = document.getElementById('current-field');
+      var currentLines = document.getElementById('current-lines');
+      var wakeLines = document.getElementById('current-wake-lines');
+      var bearingGroup = document.getElementById('current-bearing');
+      var wakeBearingGroup = document.getElementById('current-wake-bearing');
+      var wakeSpot = document.getElementById('current-wake-spot');
+      var windRing = document.getElementById('wind-ring');
+      var coarse = window.matchMedia('(pointer: coarse)').matches;
+      var svgNS = 'http://www.w3.org/2000/svg';
+      var windDirection = 135;
+      var windSpeed = 6;
+      var dashOffset = 0;
+      var scrollBoost = 0;
+      var wakeOpacity = 0;
+      var lastPointerAt = 0;
+      var lastFrame = 0;
+      var lastScrollY = window.scrollY;
+      var lastScrollAt = performance.now();
+      var frameId = 0;
+      var resizeTimer = 0;
+
+      function pathData(i, count) {
+        var y = -260 + i * (1520 / Math.max(1, count - 1));
+        var amp = 24 + (i % 5) * 8;
+        var phase = (i % 4) * 37;
+        return 'M -460 ' + y.toFixed(1) +
+          ' C -280 ' + (y + amp).toFixed(1) + ', -90 ' + (y - amp - phase * 0.08).toFixed(1) +
+          ', 110 ' + (y + phase * 0.06).toFixed(1) +
+          ' S 480 ' + (y + amp * 0.72).toFixed(1) + ', 690 ' + (y - amp * 0.55).toFixed(1) +
+          ' S 1090 ' + (y + amp * 0.8).toFixed(1) + ', 1460 ' + y.toFixed(1);
+      }
+
+      function buildLines() {
+        var count = window.innerWidth <= 640 ? 13 : 21;
+        currentLines.textContent = '';
+        wakeLines.textContent = '';
+        for (var i = 0; i < count; i++) {
+          var d = pathData(i, count);
+          var basePath = document.createElementNS(svgNS, 'path');
+          var wakePath = document.createElementNS(svgNS, 'path');
+          basePath.setAttribute('d', d);
+          wakePath.setAttribute('d', d);
+          currentLines.appendChild(basePath);
+          wakeLines.appendChild(wakePath);
+        }
+      }
+
+      function setWeather(direction, speed) {
+        if (Number.isFinite(direction)) windDirection = ((direction % 360) + 360) % 360;
+        if (Number.isFinite(speed)) windSpeed = Math.max(0, Math.min(80, speed));
+        /* SVG courses run west-to-east; rotate them toward where the wind is going. */
+        var flowRotation = (windDirection + 90) % 360;
+        var transform = 'rotate(' + flowRotation.toFixed(1) + 'deg)';
+        bearingGroup.style.transform = transform;
+        wakeBearingGroup.style.transform = transform;
+        windRing.style.transform = 'rotate(' + windDirection.toFixed(1) + 'deg)';
+        windRing.style.opacity = Math.min(0.95, 0.42 + windSpeed / 35).toFixed(2);
+      }
+
+      function noteScroll(y) {
+        if (reduced) return;
+        var now = performance.now();
+        var elapsed = Math.max(16, now - lastScrollAt);
+        var velocity = Math.abs(y - lastScrollY) / elapsed;
+        scrollBoost = Math.min(32, Math.max(scrollBoost, velocity * 14));
+        lastScrollY = y;
+        lastScrollAt = now;
+      }
+
+      function frame(now) {
+        var dt = Math.min(0.06, Math.max(0, (now - (lastFrame || now)) / 1000));
+        lastFrame = now;
+        scrollBoost *= Math.exp(-dt * 3.2);
+        if (now - lastPointerAt > 850) wakeOpacity *= Math.exp(-dt * 4.5);
+        dashOffset -= dt * (5 + windSpeed * 1.15 + scrollBoost * 0.8);
+        currentLines.style.strokeDashoffset = dashOffset.toFixed(2);
+        wakeLines.style.strokeDashoffset = dashOffset.toFixed(2);
+        field.style.setProperty('--current-opacity',
+          (0.72 + Math.min(1, scrollBoost / 24) * 0.2).toFixed(3));
+        field.style.setProperty('--wake-opacity', wakeOpacity.toFixed(3));
+        frameId = requestAnimationFrame(frame);
+      }
+
+      function start() {
+        if (reduced || frameId || document.hidden) return;
+        lastFrame = 0;
+        frameId = requestAnimationFrame(frame);
+      }
+
+      function stop() {
+        if (frameId) cancelAnimationFrame(frameId);
+        frameId = 0;
+      }
+
+      if (!coarse && !reduced) {
+        document.addEventListener('pointermove', function(e) {
+          wakeSpot.setAttribute('cx', (e.clientX / Math.max(1, window.innerWidth) * 1000).toFixed(1));
+          wakeSpot.setAttribute('cy', (e.clientY / Math.max(1, window.innerHeight) * 1000).toFixed(1));
+          wakeOpacity = 1;
+          lastPointerAt = performance.now();
+        }, { passive: true });
+      }
+
+      document.addEventListener('visibilitychange', function() {
+        if (document.hidden) stop();
+        else start();
+      });
+      window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(buildLines, 180);
+      });
+
+      buildLines();
+      setWeather(windDirection, windSpeed);
+      start();
+      return { setWeather: setWeather, noteScroll: noteScroll };
+    }
+    var currents = initCurrents();
+
     /* ---- scroll: compass bearing (spring-damped pendulum) + ruler marker ----
        The needle doesn't jump straight to its target angle. Every animation
        frame it's pulled toward the target by a spring and slowed by damping,
@@ -1481,6 +1688,7 @@
       var max = h.scrollHeight - h.clientHeight;
       var p = max > 0 ? h.scrollTop / max : 0;
       latMarker.style.top = (p * (h.clientHeight - 12)) + 'px';
+      currents.noteScroll(h.scrollTop);
       if (reduced) {
         needle.style.transform = 'rotate(' + (p * 360) + 'deg)';
         return;
@@ -1512,12 +1720,42 @@
     tickClock();
     setInterval(tickClock, 1000);
 
-    /* ---- observed conditions: live austin weather + celestial data ----
-       weather via open-meteo (keyless, CORS-open); falls back to the
-       standing "fair weather" if the fetch fails. moon phase is pure math. */
+    /* ---- observed conditions: NWS station data with Open-Meteo fallback ---- */
     var conditions = document.getElementById('conditions');
     var weatherTxt = 'fair weather';
     var sunTxt = '';
+    var weatherMeta = null;
+    var weatherLoading = false;
+    var weatherLoadedAt = 0;
+    var NWS_STATION_CACHE = 'v3-nws-station';
+    var NWS_STATION_TTL = 7 * 86400000;
+    var NWS_MAX_AGE = 90 * 60000;
+    var OPEN_METEO_MAX_AGE = 2 * 3600000;
+    var DEFAULT_WEATHER = {
+      source: 'charted fallback',
+      sourceCode: 'fallback',
+      station: '',
+      description: 'fair weather',
+      temperature: null,
+      windDirection: 135,
+      windSpeed: 6,
+      observedAt: null
+    };
+    var sunFmt = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/Chicago',
+      hour12: false,
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+    var WMO = { 0: 'clear skies', 1: 'fair weather', 2: 'passing clouds', 3: 'overcast',
+      45: 'fog', 48: 'rime fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle',
+      56: 'freezing drizzle', 57: 'freezing drizzle', 61: 'light rain', 63: 'rain',
+      65: 'heavy rain', 66: 'freezing rain', 67: 'freezing rain', 71: 'light snow',
+      73: 'snow', 75: 'heavy snow', 77: 'snow grains', 80: 'showers', 81: 'showers',
+      82: 'heavy showers', 95: 'thunderstorms', 96: 'thunderstorms', 99: 'hail & thunder' };
+    var windDirs = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse',
+                    's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'];
+
     function moonTxt() {
       var syn = 29.53058867;
       var d = ((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 86400000) % syn;
@@ -1528,31 +1766,232 @@
     function renderConditions() {
       conditions.textContent = [weatherTxt, sunTxt, moonTxt()].filter(Boolean).join(' · ');
     }
-    renderConditions();
-    (function fetchWeather() {
-      if (typeof fetch === 'undefined') return;
-      var WMO = { 0: 'clear skies', 1: 'fair weather', 2: 'passing clouds', 3: 'overcast',
-        45: 'fog', 48: 'rime fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle',
-        56: 'freezing drizzle', 57: 'freezing drizzle', 61: 'light rain', 63: 'rain',
-        65: 'heavy rain', 66: 'freezing rain', 67: 'freezing rain', 71: 'light snow',
-        73: 'snow', 75: 'heavy snow', 77: 'snow grains', 80: 'showers', 81: 'showers',
-        82: 'heavy showers', 95: 'thunderstorms', 96: 'thunderstorms', 99: 'hail & thunder' };
+
+    function fetchJson(url, options) {
+      options = options || {};
+      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+      var timeout = controller ? setTimeout(function() { controller.abort(); }, 8000) : 0;
+      var requestOptions = {};
+      Object.keys(options).forEach(function(key) { requestOptions[key] = options[key]; });
+      if (controller) requestOptions.signal = controller.signal;
+      return fetch(url, requestOptions).then(function(r) {
+        if (!r.ok) throw new Error('weather request failed: ' + r.status);
+        return r.json();
+      }).finally(function() {
+        if (timeout) clearTimeout(timeout);
+      });
+    }
+
+    function finite(v) {
+      return typeof v === 'number' && Number.isFinite(v);
+    }
+
+    function quantityValue(q) {
+      return q && finite(q.value) ? q.value : null;
+    }
+
+    function quantityToF(q) {
+      var value = quantityValue(q);
+      if (value === null) return null;
+      if (q.unitCode && q.unitCode.indexOf('degC') !== -1) return value * 9 / 5 + 32;
+      return value;
+    }
+
+    function quantityToKnots(q) {
+      var value = quantityValue(q);
+      if (value === null) return null;
+      var unit = q.unitCode || '';
+      if (unit.indexOf('km_h-1') !== -1) return value / 1.852;
+      if (unit.indexOf('m_s-1') !== -1) return value * 1.943844;
+      if (unit.indexOf('mi_h-1') !== -1) return value * 0.868976;
+      return value;
+    }
+
+    function readStationCache() {
+      try {
+        var cached = JSON.parse(localStorage.getItem(NWS_STATION_CACHE));
+        if (cached && cached.url && Date.now() - cached.savedAt < NWS_STATION_TTL) return cached;
+      } catch (e) {}
+      return null;
+    }
+
+    function writeStationCache(station) {
+      try {
+        localStorage.setItem(NWS_STATION_CACHE, JSON.stringify(station));
+      } catch (e) {}
+    }
+
+    function clearStationCache() {
+      try { localStorage.removeItem(NWS_STATION_CACHE); } catch (e) {}
+    }
+
+    function resolveNwsStation(force) {
+      var cached = !force && readStationCache();
+      if (cached) return Promise.resolve(cached);
+      var headers = { Accept: 'application/geo+json' };
+      return fetchJson('https://api.weather.gov/points/30.2672,-97.7431', { headers: headers })
+        .then(function(point) {
+          var stationsUrl = point.properties && point.properties.observationStations;
+          if (!stationsUrl) throw new Error('NWS station list unavailable');
+          return fetchJson(stationsUrl, { headers: headers });
+        })
+        .then(function(stations) {
+          var feature = stations.features && stations.features[0];
+          if (!feature || !feature.id) throw new Error('NWS station unavailable');
+          var p = feature.properties || {};
+          var station = {
+            url: feature.id,
+            id: p.stationIdentifier || feature.id.split('/').pop(),
+            name: p.name || '',
+            savedAt: Date.now()
+          };
+          writeStationCache(station);
+          return station;
+        });
+    }
+
+    function fetchNwsObservation(station) {
+      return fetchJson(station.url + '/observations/latest', {
+        headers: { Accept: 'application/geo+json' }
+      }).then(function(observation) {
+        var p = observation.properties || {};
+        return {
+          source: 'National Weather Service',
+          sourceCode: 'nws',
+          station: p.stationId || station.id,
+          stationName: p.stationName || station.name,
+          description: (p.textDescription || '').toLowerCase(),
+          temperature: quantityToF(p.temperature),
+          windDirection: quantityValue(p.windDirection),
+          windSpeed: quantityToKnots(p.windSpeed),
+          observedAt: Date.parse(p.timestamp)
+        };
+      });
+    }
+
+    function loadNwsWeather() {
+      return resolveNwsStation(false)
+        .then(fetchNwsObservation)
+        .catch(function() {
+          clearStationCache();
+          return resolveNwsStation(true).then(fetchNwsObservation);
+        });
+    }
+
+    function loadOpenMeteoWeather() {
       var url = 'https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431' +
         '&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m' +
-        '&daily=sunrise,sunset&forecast_days=1&timezone=America%2FChicago' +
-        '&temperature_unit=fahrenheit&wind_speed_unit=kn';
-      fetch(url).then(function(r) { return r.json(); }).then(function(w) {
-        var c = w.current;
-        var dirs = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse',
-                    's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'];
-        weatherTxt = (WMO[c.weather_code] || 'weather uncertain') +
-          ' · ' + Math.round(c.temperature_2m) + '°f' +
-          ' · ' + dirs[Math.round(c.wind_direction_10m / 22.5) % 16] +
-          ' ' + Math.round(c.wind_speed_10m) + 'kt';
-        sunTxt = '↑' + w.daily.sunrise[0].slice(11) + ' ↓' + w.daily.sunset[0].slice(11);
-        renderConditions();
-      }).catch(function() {}); /* keep the standing forecast */
-    })();
+        '&minutely_15=wind_speed_10m,wind_direction_10m&forecast_minutely_15=4' +
+        '&daily=sunrise,sunset&forecast_days=1&timezone=America%2FChicago&timeformat=unixtime' +
+        '&temperature_unit=fahrenheit&wind_speed_unit=kn&models=best_match';
+      return fetchJson(url).then(function(w) {
+        var c = w.current || {};
+        var minute = w.minutely_15 || {};
+        var daily = w.daily || {};
+        var windDirection = finite(c.wind_direction_10m) ? c.wind_direction_10m : null;
+        var windSpeed = finite(c.wind_speed_10m) ? c.wind_speed_10m : null;
+        if ((!finite(windDirection) || !finite(windSpeed)) &&
+            minute.wind_direction_10m && minute.wind_speed_10m) {
+          windDirection = finite(minute.wind_direction_10m[0]) ? minute.wind_direction_10m[0] : null;
+          windSpeed = finite(minute.wind_speed_10m[0]) ? minute.wind_speed_10m[0] : null;
+        }
+        return {
+          source: 'Open-Meteo best match',
+          sourceCode: 'open-meteo',
+          station: '',
+          stationName: '',
+          description: WMO[c.weather_code] || 'weather uncertain',
+          temperature: finite(c.temperature_2m) ? c.temperature_2m : null,
+          windDirection: windDirection,
+          windSpeed: windSpeed,
+          observedAt: finite(c.time) ? c.time * 1000 : null,
+          sunrise: daily.sunrise && finite(daily.sunrise[0]) ? daily.sunrise[0] * 1000 : null,
+          sunset: daily.sunset && finite(daily.sunset[0]) ? daily.sunset[0] * 1000 : null
+        };
+      });
+    }
+
+    function isFresh(weather, maxAge) {
+      if (!weather || !finite(weather.windDirection) || !finite(weather.windSpeed) ||
+          !finite(weather.observedAt)) return false;
+      var age = Date.now() - weather.observedAt;
+      return age >= -5 * 60000 && age <= maxAge;
+    }
+
+    function weatherAgeText(weather) {
+      if (!finite(weather.observedAt)) return 'deterministic fallback';
+      var minutes = Math.max(0, Math.round((Date.now() - weather.observedAt) / 60000));
+      var verb = weather.sourceCode === 'open-meteo' ? 'valid' : 'observed';
+      if (minutes < 2) return verb + ' just now';
+      if (minutes < 60) return verb + ' ' + minutes + ' min ago';
+      return verb + ' ' + Math.round(minutes / 60) + ' hr ago';
+    }
+
+    function updateWeatherMetadata() {
+      if (!weatherMeta) return;
+      var parts = [weatherMeta.source];
+      if (weatherMeta.station) parts.push(weatherMeta.station);
+      parts.push(weatherAgeText(weatherMeta));
+      conditions.title = parts.join(' · ');
+      conditions.dataset.weatherSource = weatherMeta.sourceCode;
+      conditions.dataset.weatherStation = weatherMeta.station || '';
+      conditions.dataset.weatherObserved = finite(weatherMeta.observedAt)
+        ? new Date(weatherMeta.observedAt).toISOString() : '';
+    }
+
+    function applyWeather(selected, openMeteo) {
+      var display = {
+        description: selected.description || (openMeteo && openMeteo.description) || 'fair weather',
+        temperature: finite(selected.temperature) ? selected.temperature
+          : openMeteo && finite(openMeteo.temperature) ? openMeteo.temperature : null,
+        windDirection: selected.windDirection,
+        windSpeed: selected.windSpeed
+      };
+      var dir = windDirs[Math.round(display.windDirection / 22.5) % 16];
+      weatherTxt = display.description +
+        (finite(display.temperature) ? ' · ' + Math.round(display.temperature) + '°f' : '') +
+        ' · ' + dir + ' ' + Math.round(display.windSpeed) + 'kt';
+      if (openMeteo && finite(openMeteo.sunrise) && finite(openMeteo.sunset)) {
+        sunTxt = '↑' + sunFmt.format(new Date(openMeteo.sunrise)) +
+          ' ↓' + sunFmt.format(new Date(openMeteo.sunset));
+      }
+      weatherMeta = selected;
+      currents.setWeather(selected.windDirection, selected.windSpeed);
+      updateWeatherMetadata();
+      renderConditions();
+    }
+
+    function loadWeather() {
+      if (typeof fetch === 'undefined') {
+        applyWeather(DEFAULT_WEATHER, null);
+        return;
+      }
+      if (weatherLoading) return;
+      weatherLoading = true;
+      Promise.all([
+        loadNwsWeather().catch(function() { return null; }),
+        loadOpenMeteoWeather().catch(function() { return null; })
+      ]).then(function(results) {
+        var nws = results[0];
+        var openMeteo = results[1];
+        var selected = isFresh(nws, NWS_MAX_AGE) ? nws
+          : isFresh(openMeteo, OPEN_METEO_MAX_AGE) ? openMeteo
+          : DEFAULT_WEATHER;
+        applyWeather(selected, openMeteo);
+        weatherLoadedAt = Date.now();
+      }).finally(function() {
+        weatherLoading = false;
+      });
+    }
+
+    renderConditions();
+    currents.setWeather(DEFAULT_WEATHER.windDirection, DEFAULT_WEATHER.windSpeed);
+    loadWeather();
+    setInterval(loadWeather, 15 * 60000);
+    setInterval(updateWeatherMetadata, 60000);
+    document.addEventListener('visibilitychange', function() {
+      if (!document.hidden && Date.now() - weatherLoadedAt > 15 * 60000) loadWeather();
+    });
 
     /* ---- only one log open per plate feels tidier ---- */
     var printing = false;
@@ -1767,25 +2206,32 @@
       }, { passive: false });
       svg.addEventListener('dblclick', function(e) { zoomAt(e.clientX, e.clientY, 0.55); });
       svg.addEventListener('pointerdown', function(e) {
+        moved = false;
         if (!svg.classList.contains('zoomed')) return; /* pan only when zoomed */
-        dragging = true; moved = false;
+        dragging = true;
         sx = e.clientX; sy = e.clientY; ox = vb.x; oy = vb.y;
-        svg.setPointerCapture(e.pointerId);
-        svg.classList.add('panning');
       });
       svg.addEventListener('pointermove', function(e) {
         if (!dragging) return;
         var r = svg.getBoundingClientRect();
-        if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 5) moved = true;
+        if (!moved) {
+          if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) <= 5) return;
+          moved = true;
+          svg.setPointerCapture(e.pointerId);
+          svg.classList.add('panning');
+        }
         vb.x = ox - (e.clientX - sx) / r.width * vb.w;
         vb.y = oy - (e.clientY - sy) / r.height * vb.h;
         clamp(); apply();
       });
-      ['pointerup', 'pointercancel'].forEach(function(ev) {
-        svg.addEventListener(ev, function() {
-          dragging = false;
-          svg.classList.remove('panning');
-        });
+      svg.addEventListener('pointerup', function() {
+        dragging = false;
+        svg.classList.remove('panning');
+      });
+      svg.addEventListener('pointercancel', function() {
+        dragging = false;
+        moved = false;
+        svg.classList.remove('panning');
       });
       return {
         zoom: function(f) {
@@ -1830,11 +2276,12 @@
        connecticut flashed the note open then zoomed out from under it */
     var noteTimer = null;
     travelmap.addEventListener('click', function(e) {
+      clearTimeout(noteTimer);
+      if (e.detail > 1) return; /* wait for dblclick zoom to finish */
       if (activeLevel().pz.consumeDrag()) return; /* a pan, not a click */
       var name = e.target.getAttribute && e.target.getAttribute('data-name');
       var hit = name && activeLevel().index[name.toLowerCase()];
       if (!hit || !hit.entry.note) return;
-      clearTimeout(noteTimer);
       noteTimer = setTimeout(function() { showFieldNote(hit.entry); }, 220);
     });
     travelmap.addEventListener('dblclick', function() { clearTimeout(noteTimer); });
