@@ -58,6 +58,7 @@
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
+  [hidden] { display: none !important; }
 
   html, body {
     background: var(--paper);
@@ -215,7 +216,7 @@
     font-size: 11.5px;
     letter-spacing: 1px;
   }
-  .chart-links a { margin: 0 8px; cursor: pointer; }
+  .chart-links a, .chart-links button { margin: 0 8px; }
 
   /* converging routes drawing */
   #routes { display: block; margin: 14px auto 2px; overflow: visible; }
@@ -315,6 +316,18 @@
     transition: color 0.15s, border-color 0.15s;
   }
   a:hover { color: var(--red); border-bottom-color: var(--red); }
+  button.text-control {
+    appearance: none;
+    background: none;
+    border: 0;
+    border-bottom: 1px dotted var(--blue);
+    color: var(--blue);
+    cursor: pointer;
+    font: inherit;
+    padding: 0;
+    transition: color 0.15s, border-color 0.15s;
+  }
+  button.text-control:hover { color: var(--red); border-bottom-color: var(--red); }
 
   /* ================= soundings (entry rows) ================= */
   details.fix { margin: 2px 0; }
@@ -387,6 +400,168 @@
   .plainrow { margin: 4px 0; text-transform: lowercase; }
   .plainrow .idx { color: var(--dash); font-size: 10px; margin-right: 8px; }
 
+  /* ================= travel chart (plate vi) ================= */
+  .log.travel-log { max-width: none; }
+  .travel-stamp {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .travel-toggle { letter-spacing: 0; text-transform: lowercase; }
+  .travel-toggle button {
+    color: var(--dash);
+    border-bottom: none;
+    margin-left: 8px;
+  }
+  .travel-toggle button:hover { color: var(--ink); }
+  .travel-toggle button.on { color: var(--red); }
+
+  .travelmap {
+    position: relative;
+    margin: 8px 0 4px;
+  }
+  .travelmap svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+  .travelmap .terr {
+    cursor: default;
+    fill: none;
+    stroke: var(--dash);
+    stroke-width: 0.6;
+    transition: fill 0.2s, stroke 0.2s;
+    /* hit-test the whole territory, not just its hairline stroke —
+       fill:none shapes are otherwise only hoverable on the border */
+    pointer-events: all;
+    vector-effect: non-scaling-stroke;
+  }
+  .travelmap .terr.visited {
+    fill: color-mix(in srgb, var(--red) 78%, var(--paper));
+    stroke: var(--red);
+  }
+  .travelmap .terr:hover {
+    fill: color-mix(in srgb, var(--blue) 30%, transparent);
+    stroke: var(--blue);
+  }
+  .travelmap .terr.visited:hover {
+    fill: var(--red);
+    stroke: var(--red);
+  }
+  #map-tip {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    background: var(--paper);
+    border-left: 2px solid var(--red);
+    padding: 2px 8px;
+    font-size: 10.5px;
+    letter-spacing: 1px;
+    text-transform: lowercase;
+    white-space: nowrap;
+    z-index: 5;
+    box-shadow: 0 1px 4px rgba(26,26,26,0.15);
+  }
+  #map-tip .yes { color: var(--red); }
+  #map-tip .no { color: var(--dash); }
+  #map-tip .plan { color: var(--blue); }
+
+  /* zoom / pan controls */
+  .map-ctl {
+    position: absolute;
+    top: 8px; right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 6;
+  }
+  .map-ctl button {
+    background: var(--paper);
+    border: 1px solid var(--dash);
+    width: 22px; height: 22px;
+    line-height: 20px;
+    text-align: center;
+    color: var(--ink);
+    font-size: 12px;
+    user-select: none;
+  }
+  .map-ctl button:hover { border-color: var(--red); color: var(--red); background: var(--paper); }
+  .travelmap svg.zoomed { touch-action: none; cursor: grab; }
+  .travelmap svg.panning { cursor: grabbing; }
+
+  /* territories develop like a print when the plate first opens */
+  .travelmap .terr.noted { cursor: pointer; }
+  .travelmap .terr.planned {
+    fill: url(#hatch-map-world);
+    stroke: var(--blue);
+    stroke-dasharray: 3 2;
+  }
+  #map-states .terr.planned { fill: url(#hatch-map-states); }
+  .travelmap .terr.planned:hover { fill: color-mix(in srgb, var(--blue) 30%, transparent); }
+  .travelmap .terr.flash { animation: terrflash 0.5s ease 4; }
+  @keyframes terrflash {
+    50% { fill: var(--blue); stroke: var(--blue); }
+  }
+
+  /* home port: a small crimson star pin with a gold outline */
+  .travelmap .home-mark { pointer-events: none; }
+  .travelmap .home-mark .star {
+    fill: var(--red);
+    stroke: #C9A227;
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+  }
+  html[data-watch="night"] .travelmap .home-mark .star { stroke: #E5C558; }
+
+  /* field note card (click a charted territory) */
+  .field-note { margin: 10px 0 2px; }
+  .field-note .stamp {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .field-note .stamp button { border-bottom: none; color: var(--dash); }
+  .field-note .stamp button:hover { color: var(--ink); }
+  .field-note p { margin: 0; }
+
+  /* ship's log */
+  .lb-clock { text-transform: lowercase; letter-spacing: 0; }
+  .lb-clock b { color: var(--blue); font-weight: normal; }
+  .lb-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    text-transform: lowercase;
+    padding: 2px 0;
+  }
+  .lb-row .dot { font-size: 8px; }
+  .lb-row .dot.c { color: var(--red); }
+  .lb-row .dot.s { color: var(--blue); }
+  .lb-row .leader {
+    flex: 1 1 auto;
+    border-bottom: 1px dotted var(--dash);
+    transform: translateY(-3px);
+    min-width: 16px;
+  }
+  .lb-row .yr { color: var(--dash); font-size: 10.5px; }
+  .lb-row .tm {
+    color: var(--blue);
+    font-size: 10.5px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0;
+  }
+  .lb-row.noted { cursor: pointer; }
+  .lb-row.noted:hover .nm { color: var(--blue); }
+  .lb-note {
+    display: none;
+    color: var(--dash);
+    margin: 0 0 6px 16px;
+    text-transform: lowercase;
+  }
+  .lb-note.open { display: block; }
+
   /* ================= legend / footer ================= */
   .legend {
     border: 1px solid var(--ink);
@@ -409,6 +584,15 @@
   .legend td { padding: 3px 6px; font-size: 11.5px; }
   .legend td.sym { color: var(--red); width: 30px; text-align: center; }
   .legend td.what { color: var(--dash); width: 40%; }
+
+  .notice-list {
+    list-style: none;
+    text-transform: lowercase;
+    font-size: 11.5px;
+  }
+  .notice-list li { margin: 4px 0; }
+  .notice-list b { color: var(--red); font-weight: normal; }
+  .notice-list .ndate { color: var(--dash); }
 
   .colophon {
     text-align: center;
@@ -517,6 +701,119 @@
   }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
+  /* ================= accessibility ================= */
+  .skip-link {
+    position: fixed;
+    top: 8px; left: 20px;
+    z-index: 400;
+    background: var(--red);
+    color: var(--paper);
+    padding: 6px 14px;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: lowercase;
+    transform: translateY(-160%);
+    transition: transform 0.2s;
+  }
+  .skip-link:focus { transform: translateY(0); outline: none; }
+  :focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+  }
+  /* view-transition morph on the countries/states swap */
+  .travelmap { view-transition-name: travelmap; }
+
+  /* ================= command palette (ship's helm) ================= */
+  #helm-overlay { align-items: flex-start; }
+  #helm {
+    background: var(--paper);
+    border: 1px solid var(--ink);
+    outline: 1px solid var(--ink);
+    outline-offset: 3px;
+    margin-top: 12vh;
+    width: 92%;
+    max-width: 400px;
+    text-align: left;
+    text-transform: lowercase;
+  }
+  #helm-head {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    border-bottom: 1px solid var(--dash);
+    padding: 12px 16px;
+  }
+  #helm-head .prompt { color: var(--red); }
+  #helm-input {
+    background: none;
+    border: none;
+    font: inherit;
+    color: var(--ink);
+    flex: 1 1 auto;
+    text-transform: lowercase;
+  }
+  #helm-input:focus { outline: none; }
+  #helm-list { max-height: 52vh; overflow-y: auto; padding: 6px 0; }
+  .helm-cmd {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding: 5px 16px;
+    cursor: pointer;
+  }
+  .helm-cmd .kind { color: var(--dash); font-size: 9.5px; letter-spacing: 1px; }
+  .helm-cmd.sel { background: var(--card-bg); }
+  .helm-cmd.sel .cname { color: var(--red); }
+  .helm-cmd.sel .cname::before { content: "▸ "; }
+  #helm-empty { color: var(--dash); padding: 6px 16px; display: none; }
+  #helm-hint {
+    border-top: 1px solid var(--dash);
+    padding: 7px 16px;
+    color: var(--dash);
+    font-size: 9.5px;
+    letter-spacing: 1px;
+  }
+
+  /* ================= notice to mariners (collapsible) ================= */
+  details.notices {
+    border: 1px solid var(--ink);
+    padding: 0;
+    margin-top: 26px;
+    position: relative;
+  }
+  details.notices > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 12px 18px;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    font-size: 10px;
+    color: var(--red);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  details.notices > summary::-webkit-details-marker { display: none; }
+  details.notices > summary .chev {
+    color: var(--dash);
+    transition: transform 0.25s;
+    display: inline-block;
+  }
+  details.notices[open] > summary .chev { transform: rotate(90deg); }
+  details.notices > summary .count {
+    margin-left: auto;
+    color: var(--dash);
+    letter-spacing: 1px;
+    text-transform: lowercase;
+  }
+  details.notices .notice-list { padding: 0 18px 14px; }
+
+  /* ================= digital passages (github) ================= */
+  #gh-rows .lb-row .yr { min-width: 0; }
+  #gh-status { color: var(--dash); }
+  #gh-rows a { border-bottom: none; }
+
   /* ================= responsive ================= */
   @media (max-width: 640px) {
     .ruler, .crop, #lat-marker, #compass { display: none; }
@@ -545,18 +842,61 @@
     .reveal { opacity: 1; transform: none; }
     #routes .course { stroke-dashoffset: 0; }
   }
+
+  /* ================= print: the chart on actual paper ================= */
+  @media print {
+    @page { margin: 14mm; }
+    /* force day-watch inks and actually print them (browsers drop
+       backgrounds/colours by default — this is what made prints look blank) */
+    html, html[data-watch="night"] {
+      --red: #A4133C;
+      --blue: #1376A4;
+      --ink: #1A1A1A;
+      --paper: #ffffff;
+      --dash: #8d867a;
+      --grid: transparent;
+      --grid-major: transparent;
+      --card-bg: rgba(164,19,60,0.04);
+    }
+    html, body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: #fff !important;
+      font-size: 11px;
+    }
+    /* every fixed/floating fixture and interactive-only chrome is dropped */
+    .ruler, .crop, #lat-marker, #compass, #statusbar,
+    #overlay, #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
+    .travel-toggle, #routes { display: none !important; }
+    body::before, body::after { display: none !important; }
+    main { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+    /* undo scroll-reveal so nothing is invisible on paper */
+    .reveal { opacity: 1 !important; transform: none !important; }
+    /* open every collapsible and show its contents */
+    details.fix > .log,
+    details.notices .notice-list { display: block !important; }
+    details.fix summary .mark { display: none; }
+    .lb-note, .field-note { display: block !important; }
+    .field-note[hidden] { display: none !important; } /* transient popover stays hidden */
+    /* keep blocks whole across page breaks */
+    .cartouche, .plate, .legend, details.fix, .log, .travelmap { break-inside: avoid; }
+    a { border-bottom: none !important; color: var(--ink); }
+    .travelmap svg { max-height: 420px; }
+  }
 </style>
 </head>
 <body>
 
-  <div class="ruler ruler-top"></div>
-  <div class="ruler ruler-left"></div>
-  <div class="ruler ruler-corner"></div>
-  <div id="lat-marker">◂</div>
-  <div class="crop crop-tr"></div>
-  <div class="crop crop-br"></div>
+  <a class="skip-link" href="#about">skip to contents</a>
 
-  <main>
+  <div class="ruler ruler-top" aria-hidden="true"></div>
+  <div class="ruler ruler-left" aria-hidden="true"></div>
+  <div class="ruler ruler-corner" aria-hidden="true"></div>
+  <div id="lat-marker" aria-hidden="true">◂</div>
+  <div class="crop crop-tr" aria-hidden="true"></div>
+  <div class="crop crop-br" aria-hidden="true"></div>
+
+  <main id="main">
 
     <!-- ============ cartouche ============ -->
     <header class="cartouche">
@@ -581,8 +921,8 @@
 
       <div class="chart-links">
         <a id="email-link">[email]</a>
-        <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank">[resume]</a>
-        <a id="watch-toggle">[night watch]</a>
+        <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank" rel="noreferrer">[resume]</a>
+        <button class="text-control" id="watch-toggle" type="button" aria-label="toggle night watch mode">[night watch]</button>
       </div>
 
       <div class="scalebar" aria-hidden="true">
@@ -601,7 +941,7 @@
       <div class="plate-body">
         <p>learning about the world to maybe use a sextant.</p>
         <p>interested in spatial datascience, neuro ai, &amp; human-centered geography.</p>
-        <p>currently doing geo ai research @ <a href="https://sites.utexas.edu/gisense/" target="_blank">GISense Lab</a></p>
+        <p>currently doing geo ai research @ <a href="https://sites.utexas.edu/gisense/" target="_blank" rel="noreferrer">GISense Lab</a></p>
       </div>
     </section>
 
@@ -668,7 +1008,7 @@
             <span class="nm">ecoscan</span>
             <span class="leader"></span>
             <span class="dt">mar 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/EcoScan" target="_blank">⚓</a></span>
+            <span class="ext"><a href="https://github.com/TaoTDM/EcoScan" target="_blank" rel="noreferrer">⚓</a></span>
           </summary>
           <div class="log">
             <div class="stamp">python · yolov11 · sounding nº 01</div>
@@ -686,7 +1026,7 @@
             <span class="nm">contextosolver</span>
             <span class="leader"></span>
             <span class="dt">apr 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/ContextoSolver" target="_blank">⚓</a></span>
+            <span class="ext"><a href="https://github.com/TaoTDM/ContextoSolver" target="_blank" rel="noreferrer">⚓</a></span>
           </summary>
           <div class="log">
             <div class="stamp">word2vec · glove · fasttext · svd · sounding nº 02</div>
@@ -704,7 +1044,7 @@
             <span class="nm">takemeter</span>
             <span class="leader"></span>
             <span class="dt">jun 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/TakeMeter" target="_blank">⚓</a></span>
+            <span class="ext"><a href="https://github.com/TaoTDM/TakeMeter" target="_blank" rel="noreferrer">⚓</a></span>
           </summary>
           <div class="log">
             <div class="stamp">python · distilbert · huggingface · groq · sounding nº 03</div>
@@ -722,7 +1062,7 @@
             <span class="nm">mypersona</span>
             <span class="leader"></span>
             <span class="dt">mar 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/MyPersona" target="_blank">⚓</a></span>
+            <span class="ext"><a href="https://github.com/TaoTDM/MyPersona" target="_blank" rel="noreferrer">⚓</a></span>
           </summary>
           <div class="log">
             <div class="stamp">python · asyncio · discord.py · sounding nº 04</div>
@@ -740,7 +1080,7 @@
             <span class="nm">utfoods</span>
             <span class="leader"></span>
             <span class="dt">jun 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/ai201-project1-unofficial-guide-starter/tree/main" target="_blank">⚓</a></span>
+            <span class="ext"><a href="https://github.com/TaoTDM/ai201-project1-unofficial-guide-starter/tree/main" target="_blank" rel="noreferrer">⚓</a></span>
           </summary>
           <div class="log">
             <div class="stamp">python · sentence-transformers · groq · gradio · sounding nº 05</div>
@@ -823,7 +1163,7 @@
           <div class="log">
             <div class="stamp">research program</div>
             <ul>
-              <li>Selected into <a href="https://undergraduates.utexas.edu/academics/undergraduate-research/conducting-research/summer-research-scholars-programs" target="_blank">undergraduate research professional development program</a> for summer 2026.</li>
+              <li>Selected into <a href="https://undergraduates.utexas.edu/academics/undergraduate-research/conducting-research/summer-research-scholars-programs" target="_blank" rel="noreferrer">undergraduate research professional development program</a> for summer 2026.</li>
             </ul>
           </div>
         </details>
@@ -847,19 +1187,108 @@
       </div>
     </section>
 
+    <!-- ============ plate vi — travels ============ -->
+    <section class="plate reveal" id="travels">
+      <div class="plate-label">
+        <span class="num">VI</span>
+        <span class="cap">Travels</span>
+        <span class="obs">waters charted</span>
+      </div>
+      <div class="plate-body">
+
+        <details class="fix" id="travels-fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">01</span>
+            <span class="nm">chart of travels</span>
+            <span class="leader"></span>
+            <span class="dt" id="travel-count">—</span>
+          </summary>
+          <div class="log travel-log">
+            <div class="stamp travel-stamp">
+              <span>territories charted to date</span>
+              <span class="travel-toggle">
+                <button class="text-control on" id="tt-states" type="button" aria-label="show us states map">[us states]</button>
+                <button class="text-control" id="tt-countries" type="button" aria-label="show world countries map">[countries]</button>
+              </span>
+            </div>
+            <div class="travelmap">
+              <svg id="map-world" viewBox="0 35 1000 656" preserveAspectRatio="xMidYMid meet" style="display:none" role="img" aria-label="world map of countries visited"></svg>
+              <svg id="map-states" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="map of us states visited"></svg>
+              <div class="map-ctl">
+                <button class="text-control" id="mz-in" type="button" title="zoom in" aria-label="zoom in">+</button>
+                <button class="text-control" id="mz-out" type="button" title="zoom out" aria-label="zoom out">−</button>
+                <button class="text-control" id="mz-reset" type="button" title="reset view" aria-label="reset map view">⌂</button>
+              </div>
+              <div id="map-tip"></div>
+            </div>
+            <div class="log field-note" id="field-note" hidden>
+              <div class="stamp"><span id="fn-title">field note</span><button class="text-control" id="fn-close" type="button">[stow]</button></div>
+              <p id="fn-body"></p>
+            </div>
+          </div>
+        </details>
+
+        <details class="fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">02</span>
+            <span class="nm">ship's log</span>
+            <span class="leader"></span>
+            <span class="dt">by recency</span>
+          </summary>
+          <div class="log">
+            <div class="stamp travel-stamp">
+              <span>ports of call · local time now</span>
+              <span class="lb-clock">logged <b id="lb-year">···</b></span>
+            </div>
+            <div id="logbook-rows"></div>
+          </div>
+        </details>
+
+        <details class="fix" id="digital-fix">
+          <summary>
+            <span class="mark">▸</span><span class="idx">03</span>
+            <span class="nm">digital passages</span>
+            <span class="leader"></span>
+            <span class="dt">via github</span>
+          </summary>
+          <div class="log">
+            <div class="stamp travel-stamp">
+              <span>latest dispatches from the wireless</span>
+              <span class="lb-clock"><a href="https://github.com/TaoTDM" target="_blank" rel="noreferrer">@taotdm</a></span>
+            </div>
+            <div id="gh-rows"><div id="gh-status">raising the aerial…</div></div>
+          </div>
+        </details>
+
+      </div>
+    </section>
+
     <!-- ============ legend ============ -->
     <footer class="legend reveal">
       <div class="legend-cap">Legend &amp; Key</div>
       <table>
-        <tr><td class="sym">⚓</td><td><a href="https://github.com/TaoTDM" target="_blank">github</a></td><td class="what">safe harbour for code</td></tr>
-        <tr><td class="sym">🔗</td><td><a href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank">linkedin</a></td><td class="what">signal flags &amp; hailing</td></tr>
+        <tr><td class="sym">⚓</td><td><a href="https://github.com/TaoTDM" target="_blank" rel="noreferrer">github</a></td><td class="what">safe harbour for code</td></tr>
+        <tr><td class="sym">🔗</td><td><a href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank" rel="noreferrer">linkedin</a></td><td class="what">signal flags &amp; hailing</td></tr>
         <tr><td class="sym">✉️</td><td><a id="email-link-2">email</a></td><td class="what">by albatross, allow 2–3 days</td></tr>
         <tr><td class="sym">🪝</td><td>instruments</td><td class="what">type "sextant" to inspect</td></tr>
       </table>
       <div class="colophon">
-        <span class="flourish">❦</span> surveyed &amp; drawn by s.t. chang, austin, in the year 2026 <span class="flourish">❦</span>
+        <span class="flourish">❦</span> surveyed &amp; drawn by s.t. chang in the year 2026 <span class="flourish">❦</span>
       </div>
     </footer>
+
+    <!-- ============ notice to mariners (chart corrections) ============
+         newest first; add an <li> at the top whenever the chart is amended -->
+    <details class="notices reveal">
+      <summary><span class="chev">▸</span>Notice to Mariners<span class="count">chart corrections</span></summary>
+      <ul class="notice-list">
+        <li><b>corr. nº 5</b> <span class="ndate">· jul 2026 —</span> chart workings refitted; states and countries answer the helm again; compass restored to follow the full passage.</li>
+        <li><b>corr. nº 4</b> <span class="ndate">· jul 2026 —</span> digital passages logged; soundings sounded; ship's log now keeps local time.</li>
+        <li><b>corr. nº 3</b> <span class="ndate">· jul 2026 —</span> plate vi entered: chart of travels, soundings &amp; ship's log.</li>
+        <li><b>corr. nº 2</b> <span class="ndate">· jul 2026 —</span> chart redrawn as survey sheet; night watch fitted; beacon lit for passing discords.</li>
+        <li><b>corr. nº 1</b> <span class="ndate">· jun 2026 —</span> first edition of the chart, published at taotdm.com.</li>
+      </ul>
+    </details>
 
   </main>
 
@@ -884,8 +1313,8 @@
 
   <!-- status bar -->
   <div id="statusbar">
-    <span class="pos">cursor <b id="pos-lat">30°16′N</b> <b id="pos-lon">097°44′W</b></span>
-    <span class="mid" id="sheet">sheet 1 of 1 · fair weather</span>
+    <span class="pos">your watch <b id="localtime">--:--:--</b></span>
+    <span class="mid" id="conditions">fair weather</span>
     <span>ship's time <span class="tick" id="clock">--:--:--</span></span>
   </div>
 
@@ -901,7 +1330,71 @@
 
   <div id="toast">address copied</div>
 
+  <!-- command palette · ship's helm ( / or ⌘K ) -->
+  <div id="helm-overlay" class="overlay">
+    <div id="helm" role="dialog" aria-label="command palette">
+      <div id="helm-head"><span class="prompt">⌖</span><input id="helm-input" type="text" placeholder="set a course…" autocomplete="off" spellcheck="false" aria-label="command palette input"></div>
+      <div id="helm-list"></div>
+      <div id="helm-empty">no bearing by that name.</div>
+      <div id="helm-hint">↑↓ steer · ⏎ engage · esc belay</div>
+    </div>
+  </div>
+
+<script src="assets/world-paths.js"></script>
+<script src="assets/us-states-paths.js"></script>
 <script>
+  /* ==================== EDIT TRAVELS HERE =========================
+     Names must match assets/world-paths.js (countries — e.g.
+     'United States of America', not 'USA') or assets/us-states-paths.js
+     (states — 'Texas'). `year` and `note` are optional:
+       year — shown in the hover tooltip and the ship's log
+       note — click the territory (or its log row) to read it
+     A bare string 'Taiwan' works too.
+     Full how-to: EDITING.md § travel chart.
+     ================================================================ */
+  var VISITED_COUNTRIES = [
+    { name: 'United States of America', year: 0,
+      note: 'home waters' },
+    { name: 'Taiwan', year: 2019, note: 'stunning island. visited family & soaked in the seasides' },
+    { name: 'Canada', year: 2019, note: 'quebec snowstorm midway to ski resort' },
+    { name: 'China', year: 2019, note: 'beijing is cool but xi\'an is cooler' }
+  ];
+  var VISITED_STATES = [
+    { name: 'Texas', year: 2025, note: 'home port. college, bbq, & gisense lab' },
+    { name: 'New York', year: 0, note: 'long island is a place that exists' },
+    { name: 'Connecticut', year: 2024, note: 'took my sat here' },
+    { name: 'Vermont', year: 2024, note: 'tuff ski resorts' },
+    { name: 'New Jersey', year: 2024, note: 'american dream mall' },
+    { name: 'California', year: 2019, note: 'trolleys, palm trees, & frosted flakes' },
+    { name: 'Nevada', year: 2019, note: 'hoover dam snow cone' },
+    { name: 'Arizona', year: 2019, note: 'grand canyon was lowk scary' },
+    { name: 'Michigan', year: 2025, note: 'college tours pt 1, w TNS in chat' },
+    { name: 'Indiana', year: 2025, note: 'college tours pt 2, w Ivan in chat' },
+    { name: 'Illinois', year: 2025, note: 'college tours pt 3, cool lake & corn' },
+  ];
+  var PLANNED_COUNTRIES = [
+    { name: 'New Zealand' },
+    { name: 'United Kingdom' },
+    { name: 'Australia' },
+    { name: 'France' },
+    { name: 'Netherlands' },
+    { name: 'Switzerland' },
+    { name: 'Iceland' },
+    { name: 'Italy' },
+    { name: 'Greece' },
+  ];
+  var PLANNED_STATES = [
+    { name: 'Washington' },
+    { name: 'Oregon' },
+    { name: 'Colorado' },
+    { name: 'Massachusetts' },
+  ];
+  var HOME_PORT = {
+    lat: 30.2672, lon: -97.7431,   /* world map position */
+    statesXY: [465, 495]           /* position on the albers states map */
+  };
+  /* ================== END OF TRAVELS EDIT BLOCK ================== */
+
   (function() {
     var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -926,16 +1419,17 @@
     var email = 'tao' + '@' + 'taotdm.com';
     var toast = document.getElementById('toast');
     var toastTimer;
-    function copyEmail(e) {
-      var link = e.currentTarget;
-      link.setAttribute('href', 'mailto:' + email);
-      if (!navigator.clipboard) return;
-      e.preventDefault();
+    function copyEmailToClipboard() {
+      if (!navigator.clipboard) return false;
       navigator.clipboard.writeText(email).then(function() {
         toast.classList.add('show');
         clearTimeout(toastTimer);
         toastTimer = setTimeout(function() { toast.classList.remove('show'); }, 1600);
       });
+      return true;
+    }
+    function copyEmail(e) {
+      if (copyEmailToClipboard()) e.preventDefault();
     }
     ['email-link', 'email-link-2'].forEach(function(id) {
       var el = document.getElementById(id);
@@ -1001,43 +1495,70 @@
     window.addEventListener('resize', onScroll);
     onScroll();
 
-    /* ---- pointer position as coordinates near austin ---- */
-    var posLat = document.getElementById('pos-lat');
-    var posLon = document.getElementById('pos-lon');
-    function pad(n) { return (n < 10 ? '0' : '') + n; }
-    function dm(v) {
-      var d = Math.floor(Math.abs(v));
-      var m = Math.round((Math.abs(v) - d) * 60);
-      if (m === 60) { d++; m = 0; }
-      return d + '°' + pad(m) + '′';
-    }
-    var pending = false;
-    document.addEventListener('mousemove', function(e) {
-      if (pending) return;
-      pending = true;
-      requestAnimationFrame(function() {
-        pending = false;
-        var lat = 30.2672 + (0.5 - e.clientY / window.innerHeight) * 0.4;
-        var lon = -97.7431 + (e.clientX / window.innerWidth - 0.5) * 0.4;
-        posLat.textContent = dm(lat) + 'N';
-        posLon.textContent = '0' + dm(-lon) + 'W';
-      });
-    });
-
     /* ---- ship's time (austin) ---- */
     var clock = document.getElementById('clock');
     var fmt = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/Chicago',
       hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
     });
-    function tickClock() { clock.textContent = fmt.format(new Date()); }
+    var localtime = document.getElementById('localtime');
+    var fmtLocal = new Intl.DateTimeFormat('en-US', {
+      hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
+    });
+    function tickClock() {
+      clock.textContent = fmt.format(new Date());
+      localtime.textContent = fmtLocal.format(new Date());
+    }
     tickClock();
     setInterval(tickClock, 1000);
 
+    /* ---- observed conditions: live austin weather + celestial data ----
+       weather via open-meteo (keyless, CORS-open); falls back to the
+       standing "fair weather" if the fetch fails. moon phase is pure math. */
+    var conditions = document.getElementById('conditions');
+    var weatherTxt = 'fair weather';
+    var sunTxt = '';
+    function moonTxt() {
+      var syn = 29.53058867;
+      var d = ((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 86400000) % syn;
+      var names = ['new moon', 'wax crescent', 'first qtr', 'wax gibbous',
+                   'full moon', 'wan gibbous', 'last qtr', 'wan crescent'];
+      return '☾ ' + names[Math.floor(((d + syn / 16) % syn) / (syn / 8))];
+    }
+    function renderConditions() {
+      conditions.textContent = [weatherTxt, sunTxt, moonTxt()].filter(Boolean).join(' · ');
+    }
+    renderConditions();
+    (function fetchWeather() {
+      if (typeof fetch === 'undefined') return;
+      var WMO = { 0: 'clear skies', 1: 'fair weather', 2: 'passing clouds', 3: 'overcast',
+        45: 'fog', 48: 'rime fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle',
+        56: 'freezing drizzle', 57: 'freezing drizzle', 61: 'light rain', 63: 'rain',
+        65: 'heavy rain', 66: 'freezing rain', 67: 'freezing rain', 71: 'light snow',
+        73: 'snow', 75: 'heavy snow', 77: 'snow grains', 80: 'showers', 81: 'showers',
+        82: 'heavy showers', 95: 'thunderstorms', 96: 'thunderstorms', 99: 'hail & thunder' };
+      var url = 'https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431' +
+        '&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m' +
+        '&daily=sunrise,sunset&forecast_days=1&timezone=America%2FChicago' +
+        '&temperature_unit=fahrenheit&wind_speed_unit=kn';
+      fetch(url).then(function(r) { return r.json(); }).then(function(w) {
+        var c = w.current;
+        var dirs = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse',
+                    's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'];
+        weatherTxt = (WMO[c.weather_code] || 'weather uncertain') +
+          ' · ' + Math.round(c.temperature_2m) + '°f' +
+          ' · ' + dirs[Math.round(c.wind_direction_10m / 22.5) % 16] +
+          ' ' + Math.round(c.wind_speed_10m) + 'kt';
+        sunTxt = '↑' + w.daily.sunrise[0].slice(11) + ' ↓' + w.daily.sunset[0].slice(11);
+        renderConditions();
+      }).catch(function() {}); /* keep the standing forecast */
+    })();
+
     /* ---- only one log open per plate feels tidier ---- */
+    var printing = false;
     document.querySelectorAll('.plate-body').forEach(function(body) {
       body.addEventListener('toggle', function(e) {
-        if (!e.target.open) return;
+        if (!e.target.open || printing) return;
         /* restart the surfacing animation explicitly — relying on the
            display:none -> block switch to replay it is flaky once other
            overlays/animations have run */
@@ -1053,6 +1574,22 @@
       }, true);
     });
 
+    /* ---- printing: open every entry, restore afterwards ---- */
+    var printOpened = [];
+    window.addEventListener('beforeprint', function() {
+      printing = true;
+      printOpened = [];
+      document.querySelectorAll('details.fix:not([open])').forEach(function(d) {
+        printOpened.push(d);
+        d.open = true;
+      });
+    });
+    window.addEventListener('afterprint', function() {
+      printOpened.forEach(function(d) { d.open = false; });
+      printOpened = [];
+      printing = false;
+    });
+
     /* ---- sextant easter egg ---- */
     var overlay = document.getElementById('overlay');
     var inset = document.getElementById('inset');
@@ -1062,11 +1599,9 @@
       if (overlay.classList.contains('open')) return;
       if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
       if (e.key.length === 1) {
-        buffer = (buffer + e.key.toLowerCase()).slice(-7);
-        if (buffer === 'sextant') {
-          buffer = '';
-          overlay.classList.add('open');
-        }
+        buffer = (buffer + e.key.toLowerCase()).slice(-32);
+        if (buffer.slice(-7) === 'sextant') { buffer = ''; overlay.classList.add('open'); }
+        else if (travelEgg(buffer)) { buffer = ''; }
       }
     });
     overlay.addEventListener('click', function(e) {
@@ -1075,6 +1610,503 @@
     document.getElementById('inset-close').addEventListener('click', function() {
       overlay.classList.remove('open');
     });
+
+    /* ---- plate vi: chart of travels + ship's log ---- */
+    var SVGNS = 'http://www.w3.org/2000/svg';
+    var travelsFix = document.getElementById('travels-fix');
+    var travelmap = document.querySelector('.travelmap');
+    var mapWorld = document.getElementById('map-world');
+    var mapStates = document.getElementById('map-states');
+    var mapTip = document.getElementById('map-tip');
+    var fieldNote = document.getElementById('field-note');
+    var mapsBuilt = false;
+
+    /* normalise entries ('Taiwan' -> {name:'Taiwan'}) and index by name */
+    function norm(list) {
+      return list.map(function(e) { return typeof e === 'string' ? { name: e } : e; });
+    }
+    function indexEntries(visited, planned) {
+      var m = {};
+      visited.forEach(function(e) { m[e.name.toLowerCase()] = { entry: e, status: 'visited' }; });
+      planned.forEach(function(e) { m[e.name.toLowerCase()] = { entry: e, status: 'planned' }; });
+      return m;
+    }
+    var vCountries = norm(VISITED_COUNTRIES), vStates = norm(VISITED_STATES);
+    var levels = {
+      countries: { svg: mapWorld, index: indexEntries(vCountries, norm(PLANNED_COUNTRIES)) },
+      states:    { svg: mapStates, index: indexEntries(vStates, norm(PLANNED_STATES)) }
+    };
+    function activeLevel() {
+      return mapWorld.style.display === 'none' ? levels.states : levels.countries;
+    }
+
+    document.getElementById('travel-count').textContent =
+      vStates.length + (vStates.length === 1 ? ' state' : ' states') +
+      ' \u00b7 ' + vCountries.length + (vCountries.length === 1 ? ' country' : ' countries');
+
+    function svgEl(tag, attrs) {
+      var el = document.createElementNS(SVGNS, tag);
+      for (var k in attrs) el.setAttribute(k, attrs[k]);
+      return el;
+    }
+
+    /* ---- building the two maps (lazy, on first open) ---- */
+    function addHatch(svg) {
+      var defs = svgEl('defs', {});
+      var pat = svgEl('pattern', {
+        id: 'hatch-' + svg.id, width: 5, height: 5,
+        patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)'
+      });
+      var line = svgEl('line', { x1: 0, y1: 0, x2: 0, y2: 5, 'stroke-width': 1 });
+      line.style.stroke = 'color-mix(in srgb, var(--blue) 45%, transparent)';
+      pat.appendChild(line);
+      defs.appendChild(pat);
+      svg.appendChild(defs);
+    }
+
+    function buildMap(level, paths) {
+      addHatch(level.svg);
+      var marked = [];
+      var frag = document.createDocumentFragment();
+      paths.forEach(function(t) {
+        var p = svgEl('path', { d: t.d, 'data-name': t.n, 'class': 'terr' });
+        var hit = level.index[t.n.toLowerCase()];
+        if (hit) {
+          if (hit.entry.note) p.classList.add('noted');
+          marked.push({ el: p, status: hit.status });
+        }
+        frag.appendChild(p);
+      });
+      level.svg.appendChild(frag);
+      /* scratch-off reveal: marked territories develop one by one */
+      marked.forEach(function(m, i) {
+        if (reduced) m.el.classList.add(m.status);
+        else setTimeout(function() { m.el.classList.add(m.status); }, 250 + i * 140);
+      });
+    }
+
+    /* the marker lives in a group whose scale is countered on zoom, so it
+       keeps a constant on-screen size instead of swallowing texas */
+    function drawHome(svg, xy) {
+      if (!xy) return;
+      var g = svgEl('g', {
+        'class': 'home-mark',
+        'data-x': xy[0], 'data-y': xy[1],
+        transform: 'translate(' + xy[0] + ',' + xy[1] + ')'
+      });
+      /* same five-point star as the cartouche's "you are here" */
+      g.appendChild(svgEl('path', {
+        'class': 'star',
+        d: 'M0 -8 L2.4 -3 L7.8 -2.4 L3.8 1.4 L4.8 6.8 L0 4.2 L-4.8 6.8 L-3.8 1.4 L-7.8 -2.4 L-2.4 -3 Z',
+        transform: 'scale(1.8)'
+      }));
+      svg.appendChild(g);
+    }
+
+    travelsFix.addEventListener('toggle', function() {
+      if (!travelsFix.open || mapsBuilt) return;
+      if (typeof WORLD_PATHS === 'undefined' || typeof US_STATE_PATHS === 'undefined') return;
+      mapsBuilt = true;
+      buildMap(levels.countries, WORLD_PATHS);
+      buildMap(levels.states, US_STATE_PATHS);
+      if (window.lonLatToXY) drawHome(mapWorld, lonLatToXY(HOME_PORT.lon, HOME_PORT.lat));
+      drawHome(mapStates, HOME_PORT.statesXY);
+    });
+
+    /* ---- countries / us states toggle ---- */
+    var ttCountries = document.getElementById('tt-countries');
+    var ttStates = document.getElementById('tt-states');
+    function setLevel(name) {
+      var apply = function() {
+        var world = name === 'countries';
+        mapWorld.style.display = world ? '' : 'none';
+        mapStates.style.display = world ? 'none' : '';
+        ttCountries.classList.toggle('on', world);
+        ttStates.classList.toggle('on', !world);
+        mapTip.style.display = 'none';
+      };
+      /* morph between the two maps with the View Transitions API */
+      if (!reduced && document.startViewTransition) document.startViewTransition(apply);
+      else apply();
+    }
+    ttCountries.addEventListener('click', function() { setLevel('countries'); });
+    ttStates.addEventListener('click', function() { setLevel('states'); });
+
+    /* ---- zoom + pan (wheel, drag, buttons; viewBox-based) ---- */
+    function panZoom(svg, base) {
+      var vb = { x: base[0], y: base[1], w: base[2], h: base[3] };
+      var dragging = false, moved = false, sx, sy, ox, oy;
+      function apply() {
+        svg.setAttribute('viewBox', vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h);
+        svg.classList.toggle('zoomed', vb.w < base[2] - 0.5);
+        /* counter-scale the home marker so it stays a constant screen size */
+        var k = vb.w / base[2];
+        svg.querySelectorAll('.home-mark').forEach(function(g) {
+          g.setAttribute('transform', 'translate(' + g.getAttribute('data-x') + ',' +
+            g.getAttribute('data-y') + ') scale(' + k + ')');
+        });
+      }
+      function clamp() {
+        vb.x = Math.max(base[0], Math.min(base[0] + base[2] - vb.w, vb.x));
+        vb.y = Math.max(base[1], Math.min(base[1] + base[3] - vb.h, vb.y));
+      }
+      function zoomAt(cx, cy, f) {
+        var r = svg.getBoundingClientRect();
+        var px = vb.x + (cx - r.left) / r.width * vb.w;
+        var py = vb.y + (cy - r.top) / r.height * vb.h;
+        var w = Math.min(base[2], Math.max(base[2] / 12, vb.w * f));
+        var h = w * base[3] / base[2];
+        vb.x = px - (px - vb.x) * (w / vb.w);
+        vb.y = py - (py - vb.y) * (h / vb.h);
+        vb.w = w; vb.h = h;
+        clamp(); apply();
+      }
+      svg.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        zoomAt(e.clientX, e.clientY, e.deltaY > 0 ? 1.25 : 0.8);
+      }, { passive: false });
+      svg.addEventListener('dblclick', function(e) { zoomAt(e.clientX, e.clientY, 0.55); });
+      svg.addEventListener('pointerdown', function(e) {
+        if (!svg.classList.contains('zoomed')) return; /* pan only when zoomed */
+        dragging = true; moved = false;
+        sx = e.clientX; sy = e.clientY; ox = vb.x; oy = vb.y;
+        svg.setPointerCapture(e.pointerId);
+        svg.classList.add('panning');
+      });
+      svg.addEventListener('pointermove', function(e) {
+        if (!dragging) return;
+        var r = svg.getBoundingClientRect();
+        if (Math.abs(e.clientX - sx) + Math.abs(e.clientY - sy) > 5) moved = true;
+        vb.x = ox - (e.clientX - sx) / r.width * vb.w;
+        vb.y = oy - (e.clientY - sy) / r.height * vb.h;
+        clamp(); apply();
+      });
+      ['pointerup', 'pointercancel'].forEach(function(ev) {
+        svg.addEventListener(ev, function() {
+          dragging = false;
+          svg.classList.remove('panning');
+        });
+      });
+      return {
+        zoom: function(f) {
+          var r = svg.getBoundingClientRect();
+          zoomAt(r.left + r.width / 2, r.top + r.height / 2, f);
+        },
+        reset: function() { vb = { x: base[0], y: base[1], w: base[2], h: base[3] }; apply(); },
+        consumeDrag: function() { var m = moved; moved = false; return m; }
+      };
+    }
+    levels.countries.pz = panZoom(mapWorld, [0, 35, 1000, 656]);
+    levels.states.pz = panZoom(mapStates, [0, 0, 975, 610]);
+    document.getElementById('mz-in').addEventListener('click', function() { activeLevel().pz.zoom(0.7); });
+    document.getElementById('mz-out').addEventListener('click', function() { activeLevel().pz.zoom(1.45); });
+    document.getElementById('mz-reset').addEventListener('click', function() { activeLevel().pz.reset(); });
+
+    /* ---- hover identification + field notes ---- */
+    travelmap.addEventListener('mousemove', function(e) {
+      var name = e.target.getAttribute && e.target.getAttribute('data-name');
+      if (!name) { mapTip.style.display = 'none'; return; }
+      var hit = activeLevel().index[name.toLowerCase()];
+      var status = !hit ? '<span class="no">uncharted</span>'
+        : hit.status === 'planned' ? '<span class="plan">on the itinerary</span>'
+        : '<span class="yes">charted' + (hit.entry.year ? ' ' + hit.entry.year : '') + ' \u2713</span>';
+      mapTip.innerHTML = name.toLowerCase() + ' \u00b7 ' + status;
+      var r = travelmap.getBoundingClientRect();
+      mapTip.style.left = Math.min(e.clientX - r.left + 14, r.width - 190) + 'px';
+      mapTip.style.top = (e.clientY - r.top - 26) + 'px';
+      mapTip.style.display = 'block';
+    });
+    travelmap.addEventListener('mouseleave', function() { mapTip.style.display = 'none'; });
+
+    function showFieldNote(entry) {
+      document.getElementById('fn-title').textContent =
+        'field note \u00b7 ' + entry.name.toLowerCase() +
+        (entry.year ? ' \u00b7 ' + entry.year : '');
+      document.getElementById('fn-body').textContent = entry.note;
+      fieldNote.hidden = false;
+    }
+    /* a single click opens the note, but hold it ~220ms so a double-click
+       (zoom) can cancel it \u2014 otherwise dbl-clicking a noted state like
+       connecticut flashed the note open then zoomed out from under it */
+    var noteTimer = null;
+    travelmap.addEventListener('click', function(e) {
+      if (activeLevel().pz.consumeDrag()) return; /* a pan, not a click */
+      var name = e.target.getAttribute && e.target.getAttribute('data-name');
+      var hit = name && activeLevel().index[name.toLowerCase()];
+      if (!hit || !hit.entry.note) return;
+      clearTimeout(noteTimer);
+      noteTimer = setTimeout(function() { showFieldNote(hit.entry); }, 220);
+    });
+    travelmap.addEventListener('dblclick', function() { clearTimeout(noteTimer); });
+    document.getElementById('fn-close').addEventListener('click', function() {
+      fieldNote.hidden = true;
+    });
+
+    /* ---- ship's log: most-recent first; right column ticks the *current*
+       local time at each place. tz is resolved from these tables (or an
+       optional per-entry `tz`); unknown places fall back to the year. ---- */
+    var STATE_TZ = {
+      'alabama':'America/Chicago','alaska':'America/Anchorage','arizona':'America/Phoenix',
+      'arkansas':'America/Chicago','california':'America/Los_Angeles','colorado':'America/Denver',
+      'connecticut':'America/New_York','delaware':'America/New_York',
+      'district of columbia':'America/New_York','florida':'America/New_York',
+      'georgia':'America/New_York','hawaii':'Pacific/Honolulu','idaho':'America/Boise',
+      'illinois':'America/Chicago','indiana':'America/Indiana/Indianapolis','iowa':'America/Chicago',
+      'kansas':'America/Chicago','kentucky':'America/New_York','louisiana':'America/Chicago',
+      'maine':'America/New_York','maryland':'America/New_York','massachusetts':'America/New_York',
+      'michigan':'America/Detroit','minnesota':'America/Chicago','mississippi':'America/Chicago',
+      'missouri':'America/Chicago','montana':'America/Denver','nebraska':'America/Chicago',
+      'nevada':'America/Los_Angeles','new hampshire':'America/New_York','new jersey':'America/New_York',
+      'new mexico':'America/Denver','new york':'America/New_York','north carolina':'America/New_York',
+      'north dakota':'America/Chicago','ohio':'America/New_York','oklahoma':'America/Chicago',
+      'oregon':'America/Los_Angeles','pennsylvania':'America/New_York','rhode island':'America/New_York',
+      'south carolina':'America/New_York','south dakota':'America/Chicago','tennessee':'America/Chicago',
+      'texas':'America/Chicago','utah':'America/Denver','vermont':'America/New_York',
+      'virginia':'America/New_York','washington':'America/Los_Angeles','west virginia':'America/New_York',
+      'wisconsin':'America/Chicago','wyoming':'America/Denver'
+    };
+    var COUNTRY_TZ = {
+      'united states of america':'America/New_York','taiwan':'Asia/Taipei','canada':'America/Toronto',
+      'china':'Asia/Shanghai','japan':'Asia/Tokyo','south korea':'Asia/Seoul',
+      'united kingdom':'Europe/London','france':'Europe/Paris','netherlands':'Europe/Amsterdam',
+      'switzerland':'Europe/Zurich','iceland':'Atlantic/Reykjavik','italy':'Europe/Rome',
+      'greece':'Europe/Athens','germany':'Europe/Berlin','spain':'Europe/Madrid',
+      'portugal':'Europe/Lisbon','ireland':'Europe/Dublin','norway':'Europe/Oslo',
+      'sweden':'Europe/Stockholm','denmark':'Europe/Copenhagen','austria':'Europe/Vienna',
+      'belgium':'Europe/Brussels','czechia':'Europe/Prague','poland':'Europe/Warsaw',
+      'australia':'Australia/Sydney','new zealand':'Pacific/Auckland','mexico':'America/Mexico_City',
+      'brazil':'America/Sao_Paulo','india':'Asia/Kolkata','thailand':'Asia/Bangkok',
+      'vietnam':'Asia/Ho_Chi_Minh','singapore':'Asia/Singapore','indonesia':'Asia/Jakarta',
+      'philippines':'Asia/Manila','united arab emirates':'Asia/Dubai','turkey':'Europe/Istanbul',
+      'egypt':'Africa/Cairo','south africa':'Africa/Johannesburg','kenya':'Africa/Nairobi',
+      'russia':'Europe/Moscow','ukraine':'Europe/Kyiv','finland':'Europe/Helsinki'
+    };
+    var tzFmts = {};
+    function tzTime(tz) {
+      if (!(tz in tzFmts)) {
+        try {
+          tzFmts[tz] = new Intl.DateTimeFormat('en-US',
+            { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' });
+        } catch (e) { tzFmts[tz] = null; }
+      }
+      return tzFmts[tz] ? tzFmts[tz].format(new Date()) : null;
+    }
+    function resolveTz(item) {
+      if (item.e.tz) return item.e.tz;
+      var n = item.e.name.toLowerCase();
+      return item.cls === 's' ? STATE_TZ[n] : COUNTRY_TZ[n];
+    }
+
+    (function buildLogbook() {
+      var wrap = document.getElementById('logbook-rows');
+      var lbYear = document.getElementById('lb-year');
+      var all = vCountries.map(function(e) { return { e: e, cls: 'c' }; })
+        .concat(vStates.map(function(e) { return { e: e, cls: 's' }; }))
+        .sort(function(a, b) { return (b.e.year || 0) - (a.e.year || 0); });
+      all.forEach(function(item) {
+        var tz = resolveTz(item);
+        var right = tz
+          ? '<span class="tm" data-tz="' + tz + '">--:--</span>'
+          : '<span class="yr">' + (item.e.year || '\u2014') + '</span>';
+        var row = document.createElement('div');
+        row.className = 'lb-row' + (item.e.note ? ' noted' : '');
+        row.innerHTML =
+          '<span class="dot ' + item.cls + '">\u25cf</span>' +
+          '<span class="nm">' + item.e.name.toLowerCase() + '</span>' +
+          '<span class="leader"></span>' + right;
+        wrap.appendChild(row);
+        row.addEventListener('mouseenter', function() {
+          lbYear.textContent = item.e.year || 'undated';
+        });
+        row.addEventListener('mouseleave', function() {
+          lbYear.textContent = '\u00b7\u00b7\u00b7';
+        });
+        if (item.e.note) {
+          var note = document.createElement('div');
+          note.className = 'lb-note';
+          note.textContent = item.e.note;
+          wrap.appendChild(note);
+          row.addEventListener('click', function() { note.classList.toggle('open'); });
+        }
+      });
+      function tickLog() {
+        wrap.querySelectorAll('.tm').forEach(function(s) {
+          var t = tzTime(s.getAttribute('data-tz'));
+          if (t) s.textContent = t;
+        });
+      }
+      tickLog();
+      setInterval(tickLog, 20000);
+    })();
+
+    /* ---- digital passages: recent github activity (lazy, keyless API) ---- */
+    var digitalFix = document.getElementById('digital-fix');
+    var ghLoaded = false;
+    function ago(iso) {
+      var s = (Date.now() - new Date(iso).getTime()) / 1000;
+      if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min past';
+      if (s < 86400) return Math.round(s / 3600) + ' hr past';
+      var d = Math.round(s / 86400);
+      if (d < 14) return d + ' days past';
+      if (d < 60) return Math.round(d / 7) + ' wk past';
+      return Math.round(d / 30) + ' mo past';
+    }
+    function ghDescribe(ev) {
+      var repo = (ev.repo && ev.repo.name || '/').split('/')[1] || 'a chart';
+      var p = ev.payload || {};
+      switch (ev.type) {
+        case 'PushEvent':
+          var n = p.size || (p.commits && p.commits.length) || 1;
+          return 'charted ' + n + ' commit' + (n > 1 ? 's' : '') + ' to ' + repo;
+        case 'CreateEvent':
+          return (p.ref_type === 'repository' ? 'founded ' : 'hoisted ' + p.ref_type + ' in ') + repo;
+        case 'PullRequestEvent': return (p.action || 'opened') + ' a pull request in ' + repo;
+        case 'IssuesEvent':      return (p.action || 'opened') + ' an issue in ' + repo;
+        case 'IssueCommentEvent':return 'left word on ' + repo;
+        case 'WatchEvent':       return 'starred ' + repo;
+        case 'ForkEvent':        return 'forked ' + repo;
+        case 'ReleaseEvent':     return 'published a release of ' + repo;
+        case 'DeleteEvent':      return 'struck ' + p.ref_type + ' from ' + repo;
+        default:                 return ev.type.replace('Event', '').toLowerCase() + ' · ' + repo;
+      }
+    }
+    function loadDigital() {
+      if (ghLoaded) return;
+      ghLoaded = true;
+      var rows = document.getElementById('gh-rows');
+      var status = document.getElementById('gh-status');
+      if (typeof fetch === 'undefined') { status.textContent = 'the wireless is down.'; return; }
+      fetch('https://api.github.com/users/TaoTDM/events/public?per_page=8')
+        .then(function(r) { if (!r.ok) throw 0; return r.json(); })
+        .then(function(events) {
+          var seen = {}, list = [];
+          events.forEach(function(ev) {
+            var d = ghDescribe(ev);
+            if (seen[d]) return; seen[d] = 1;
+            list.push({ d: d, t: ev.created_at });
+          });
+          list = list.slice(0, 6);
+          if (!list.length) throw 0;
+          rows.innerHTML = list.map(function(x) {
+            return '<div class="lb-row"><span class="dot c">●</span>' +
+              '<span class="nm">' + x.d + '</span><span class="leader"></span>' +
+              '<span class="yr">' + ago(x.t) + '</span></div>';
+          }).join('');
+        })
+        .catch(function() {
+          status.textContent = 'the wireless is quiet — ';
+          var a = document.createElement('a');
+          a.href = 'https://github.com/TaoTDM'; a.target = '_blank'; a.rel = 'noreferrer';
+          a.textContent = 'visit the harbour directly';
+          status.appendChild(a);
+        });
+    }
+    digitalFix.addEventListener('toggle', function() {
+      if (digitalFix.open) loadDigital();
+    });
+
+    /* ---- easter egg: typing a territory's name flashes it ---- */
+    var eggNames = null;
+    function travelEgg(buf) {
+      if (!eggNames) {
+        if (typeof WORLD_PATHS === 'undefined' || typeof US_STATE_PATHS === 'undefined') return false;
+        /* states before countries so 'georgia' prefers the state;
+           longest names first so 'south korea' beats hypothetical suffixes */
+        eggNames = US_STATE_PATHS.map(function(t) { return { n: t.n.toLowerCase(), level: 'states' }; })
+          .concat(WORLD_PATHS.map(function(t) { return { n: t.n.toLowerCase(), level: 'countries' }; }))
+          .sort(function(a, b) { return b.n.length - a.n.length; });
+      }
+      for (var i = 0; i < eggNames.length; i++) {
+        var egg = eggNames[i];
+        if (egg.n.length < 4 || buf.slice(-egg.n.length) !== egg.n) continue;
+        travelsFix.open = true; /* triggers the lazy build */
+        setLevel(egg.level);
+        var lvl = activeLevel();
+        lvl.pz.reset();
+        var el = null;
+        lvl.svg.querySelectorAll('.terr').forEach(function(t) {
+          if (t.getAttribute('data-name').toLowerCase() === egg.n) el = t;
+        });
+        if (el) {
+          travelsFix.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+          el.classList.remove('flash');
+          void el.getBBox();
+          el.classList.add('flash');
+          setTimeout(function() { el.classList.remove('flash'); }, 2200);
+        }
+        return true;
+      }
+      return false;
+    }
+    /* ---- command palette · ship's helm ( / or ⌘K ) ---- */
+    (function helm() {
+      var ov = document.getElementById('helm-overlay');
+      var input = document.getElementById('helm-input');
+      var listEl = document.getElementById('helm-list');
+      var emptyEl = document.getElementById('helm-empty');
+      var RESUME = 'https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing';
+      function goTo(id) {
+        var el = document.getElementById(id);
+        if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
+      }
+      var cmds = [
+        { name: 'about', kind: 'plate', run: function() { goTo('about'); } },
+        { name: 'experience', kind: 'plate', run: function() { goTo('experience'); } },
+        { name: 'projects', kind: 'plate', run: function() { goTo('projects'); } },
+        { name: 'uni', kind: 'plate', run: function() { goTo('uni'); } },
+        { name: 'honors', kind: 'plate', run: function() { goTo('honors'); } },
+        { name: 'travels', kind: 'plate', run: function() { goTo('travels'); } },
+        { name: 'chart of travels', kind: 'chart', run: function() { travelsFix.open = true; goTo('travels'); } },
+        { name: 'countries map', kind: 'view', run: function() { travelsFix.open = true; setLevel('countries'); goTo('travels'); } },
+        { name: 'us states map', kind: 'view', run: function() { travelsFix.open = true; setLevel('states'); goTo('travels'); } },
+        { name: 'toggle night watch', kind: 'helm', run: function() { setWatch(document.documentElement.hasAttribute('data-watch') ? 'day' : 'night'); } },
+        { name: 'print the chart', kind: 'helm', run: function() { window.print(); } },
+        { name: 'copy email', kind: 'hail', run: copyEmailToClipboard },
+        { name: 'open resume', kind: 'hail', run: function() { window.open(RESUME, '_blank', 'noopener'); } },
+        { name: 'github', kind: 'hail', run: function() { window.open('https://github.com/TaoTDM', '_blank', 'noopener'); } },
+        { name: 'linkedin', kind: 'hail', run: function() { window.open('https://www.linkedin.com/in/shi-tao-chang/', '_blank', 'noopener'); } },
+        { name: 'the sextant', kind: '???', run: function() { overlay.classList.add('open'); } }
+      ];
+      var matches = cmds.slice(), sel = 0;
+      function render() {
+        var q = input.value.trim().toLowerCase();
+        matches = cmds.filter(function(c) { return c.name.indexOf(q) !== -1; });
+        if (sel >= matches.length) sel = Math.max(0, matches.length - 1);
+        listEl.innerHTML = '';
+        matches.forEach(function(c, i) {
+          var row = document.createElement('div');
+          row.className = 'helm-cmd' + (i === sel ? ' sel' : '');
+          row.innerHTML = '<span class="cname">' + c.name + '</span><span class="kind">' + c.kind + '</span>';
+          row.addEventListener('mouseenter', function() { sel = i; render(); });
+          row.addEventListener('click', function() { runCmd(c); });
+          listEl.appendChild(row);
+        });
+        emptyEl.style.display = matches.length ? 'none' : 'block';
+      }
+      function openHelm() { input.value = ''; sel = 0; render(); ov.classList.add('open'); input.focus(); }
+      function closeHelm() { ov.classList.remove('open'); }
+      function runCmd(c) { closeHelm(); c.run(); }
+      input.addEventListener('input', function() { sel = 0; render(); });
+      input.addEventListener('keydown', function(e) {
+        if (e.key === 'ArrowDown') { e.preventDefault(); sel = Math.min(sel + 1, matches.length - 1); render(); }
+        else if (e.key === 'ArrowUp') { e.preventDefault(); sel = Math.max(sel - 1, 0); render(); }
+        else if (e.key === 'Enter' && matches[sel]) { runCmd(matches[sel]); }
+        else if (e.key === 'Escape') { closeHelm(); }
+      });
+      ov.addEventListener('click', function(e) {
+        if (!document.getElementById('helm').contains(e.target)) closeHelm();
+      });
+      document.addEventListener('keydown', function(e) {
+        if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+          e.preventDefault();
+          ov.classList.contains('open') ? closeHelm() : openHelm();
+        } else if (e.key === '/' && !ov.classList.contains('open') &&
+                   e.target.tagName !== 'INPUT' && !overlay.classList.contains('open')) {
+          e.preventDefault();
+          openHelm();
+        }
+      });
+    })();
   })();
 </script>
 </body>

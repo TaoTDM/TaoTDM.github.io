@@ -47,7 +47,6 @@
     <rect x="-42" y="0" width="42" height="7" fill="none" stroke="#1A1A1A"/>
     <rect x="0" y="0" width="42" height="7" fill="#1A1A1A" stroke="#1A1A1A"/>
     <rect x="42" y="0" width="42" height="7" fill="none" stroke="#1A1A1A"/>
-    <text x="140" y="8" font-family="Maple Mono NF, monospace" font-size="13" letter-spacing="1" fill="#b8b2a4">scale of miles, more or less</text>
   </g>
 
   <!-- compass rose -->
@@ -70,5 +69,5 @@
   </g>
 
   <!-- footer -->
-  <text x="600" y="594" text-anchor="middle" font-family="Maple Mono NF, monospace" font-size="15" letter-spacing="3" fill="#b8b2a4">TAOTDM.GITHUB.IO</text>
+  <text x="600" y="594" text-anchor="middle" font-family="Maple Mono NF, monospace" font-size="15" letter-spacing="3" fill="#b8b2a4">TAOTDM.COM</text>
 </svg>
