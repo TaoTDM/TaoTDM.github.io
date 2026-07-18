@@ -569,9 +569,8 @@
   .field-note .stamp button:hover { color: var(--ink); }
   .field-note p { margin: 0; }
 
-  /* ship's log */
+  /* passage rows */
   .lb-clock { text-transform: lowercase; letter-spacing: 0; }
-  .lb-clock b { color: var(--blue); font-weight: normal; }
   .lb-row {
     display: flex;
     align-items: baseline;
@@ -581,7 +580,6 @@
   }
   .lb-row .dot { font-size: 8px; }
   .lb-row .dot.c { color: var(--red); }
-  .lb-row .dot.s { color: var(--blue); }
   .lb-row .leader {
     flex: 1 1 auto;
     border-bottom: 1px dotted var(--dash);
@@ -589,21 +587,6 @@
     min-width: 16px;
   }
   .lb-row .yr { color: var(--dash); font-size: 10.5px; }
-  .lb-row .tm {
-    color: var(--blue);
-    font-size: 10.5px;
-    font-variant-numeric: tabular-nums;
-    letter-spacing: 0;
-  }
-  .lb-row.noted { cursor: pointer; }
-  .lb-row.noted:hover .nm { color: var(--blue); }
-  .lb-note {
-    display: none;
-    color: var(--dash);
-    margin: 0 0 6px 16px;
-    text-transform: lowercase;
-  }
-  .lb-note.open { display: block; }
 
   /* ================= legend / footer ================= */
   .legend {
@@ -627,15 +610,6 @@
   .legend td { padding: 3px 6px; font-size: 11.5px; }
   .legend td.sym { color: var(--red); width: 30px; text-align: center; }
   .legend td.what { color: var(--dash); width: 40%; }
-
-  .notice-list {
-    list-style: none;
-    text-transform: lowercase;
-    font-size: 11.5px;
-  }
-  .notice-list li { margin: 4px 0; }
-  .notice-list b { color: var(--red); font-weight: normal; }
-  .notice-list .ndate { color: var(--dash); }
 
   .colophon {
     text-align: center;
@@ -835,40 +809,6 @@
     letter-spacing: 1px;
   }
 
-  /* ================= notice to mariners (collapsible) ================= */
-  details.notices {
-    border: 1px solid var(--ink);
-    padding: 0;
-    margin-top: 26px;
-    position: relative;
-  }
-  details.notices > summary {
-    list-style: none;
-    cursor: pointer;
-    padding: 12px 18px;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    font-size: 10px;
-    color: var(--red);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  details.notices > summary::-webkit-details-marker { display: none; }
-  details.notices > summary .chev {
-    color: var(--dash);
-    transition: transform 0.25s;
-    display: inline-block;
-  }
-  details.notices[open] > summary .chev { transform: rotate(90deg); }
-  details.notices > summary .count {
-    margin-left: auto;
-    color: var(--dash);
-    letter-spacing: 1px;
-    text-transform: lowercase;
-  }
-  details.notices .notice-list { padding: 0 18px 14px; }
-
   /* ================= digital passages (github) ================= */
   #gh-rows .lb-row .yr { min-width: 0; }
   #gh-status { color: var(--dash); }
@@ -935,10 +875,9 @@
     /* undo scroll-reveal so nothing is invisible on paper */
     .reveal { opacity: 1 !important; transform: none !important; }
     /* open every collapsible and show its contents */
-    details.fix > .log,
-    details.notices .notice-list { display: block !important; }
+    details.fix > .log { display: block !important; }
     details.fix summary .mark { display: none; }
-    .lb-note, .field-note { display: block !important; }
+    .field-note { display: block !important; }
     .field-note[hidden] { display: none !important; } /* transient popover stays hidden */
     /* keep blocks whole across page breaks */
     .cartouche, .plate, .legend, details.fix, .log, .travelmap { break-inside: avoid; }
@@ -1309,25 +1248,9 @@
           </div>
         </details>
 
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">02</span>
-            <span class="nm">ship's log</span>
-            <span class="leader"></span>
-            <span class="dt">by recency</span>
-          </summary>
-          <div class="log">
-            <div class="stamp travel-stamp">
-              <span>ports of call · local time now</span>
-              <span class="lb-clock">logged <b id="lb-year">···</b></span>
-            </div>
-            <div id="logbook-rows"></div>
-          </div>
-        </details>
-
         <details class="fix" id="digital-fix">
           <summary>
-            <span class="mark">▸</span><span class="idx">03</span>
+            <span class="mark">▸</span><span class="idx">02</span>
             <span class="nm">digital passages</span>
             <span class="leader"></span>
             <span class="dt">via github</span>
@@ -1357,20 +1280,6 @@
         <span class="flourish">❦</span> surveyed &amp; drawn by s.t. chang in the year 2026 <span class="flourish">❦</span>
       </div>
     </footer>
-
-    <!-- ============ notice to mariners (chart corrections) ============
-         newest first; add an <li> at the top whenever the chart is amended -->
-    <details class="notices reveal">
-      <summary><span class="chev">▸</span>Notice to Mariners<span class="count">chart corrections</span></summary>
-      <ul class="notice-list">
-        <li><b>corr. nº 6</b> <span class="ndate">· jul 2026 —</span> live currents entered from the weather station; wind ring fitted to the compass; passing wakes now stir the chart.</li>
-        <li><b>corr. nº 5</b> <span class="ndate">· jul 2026 —</span> chart workings refitted; states and countries answer the helm again; compass restored to follow the full passage.</li>
-        <li><b>corr. nº 4</b> <span class="ndate">· jul 2026 —</span> digital passages logged; soundings sounded; ship's log now keeps local time.</li>
-        <li><b>corr. nº 3</b> <span class="ndate">· jul 2026 —</span> plate vi entered: chart of travels, soundings &amp; ship's log.</li>
-        <li><b>corr. nº 2</b> <span class="ndate">· jul 2026 —</span> chart redrawn as survey sheet; night watch fitted; beacon lit for passing discords.</li>
-        <li><b>corr. nº 1</b> <span class="ndate">· jun 2026 —</span> first edition of the chart, published at taotdm.com.</li>
-      </ul>
-    </details>
 
   </main>
 
@@ -1433,8 +1342,8 @@
      Names must match assets/world-paths.js (countries — e.g.
      'United States of America', not 'USA') or assets/us-states-paths.js
      (states — 'Texas'). `year` and `note` are optional:
-       year — shown in the hover tooltip and the ship's log
-       note — click the territory (or its log row) to read it
+       year — shown in the hover tooltip
+       note — click the territory to read it
      A bare string 'Taiwan' works too.
      Full how-to: EDITING.md § travel chart.
      ================================================================ */
@@ -2050,7 +1959,7 @@
       overlay.classList.remove('open');
     });
 
-    /* ---- plate vi: chart of travels + ship's log ---- */
+    /* ---- plate vi: chart of travels + field notes ---- */
     var SVGNS = 'http://www.w3.org/2000/svg';
     var travelsFix = document.getElementById('travels-fix');
     var travelmap = document.querySelector('.travelmap');
@@ -2288,103 +2197,6 @@
     document.getElementById('fn-close').addEventListener('click', function() {
       fieldNote.hidden = true;
     });
-
-    /* ---- ship's log: most-recent first; right column ticks the *current*
-       local time at each place. tz is resolved from these tables (or an
-       optional per-entry `tz`); unknown places fall back to the year. ---- */
-    var STATE_TZ = {
-      'alabama':'America/Chicago','alaska':'America/Anchorage','arizona':'America/Phoenix',
-      'arkansas':'America/Chicago','california':'America/Los_Angeles','colorado':'America/Denver',
-      'connecticut':'America/New_York','delaware':'America/New_York',
-      'district of columbia':'America/New_York','florida':'America/New_York',
-      'georgia':'America/New_York','hawaii':'Pacific/Honolulu','idaho':'America/Boise',
-      'illinois':'America/Chicago','indiana':'America/Indiana/Indianapolis','iowa':'America/Chicago',
-      'kansas':'America/Chicago','kentucky':'America/New_York','louisiana':'America/Chicago',
-      'maine':'America/New_York','maryland':'America/New_York','massachusetts':'America/New_York',
-      'michigan':'America/Detroit','minnesota':'America/Chicago','mississippi':'America/Chicago',
-      'missouri':'America/Chicago','montana':'America/Denver','nebraska':'America/Chicago',
-      'nevada':'America/Los_Angeles','new hampshire':'America/New_York','new jersey':'America/New_York',
-      'new mexico':'America/Denver','new york':'America/New_York','north carolina':'America/New_York',
-      'north dakota':'America/Chicago','ohio':'America/New_York','oklahoma':'America/Chicago',
-      'oregon':'America/Los_Angeles','pennsylvania':'America/New_York','rhode island':'America/New_York',
-      'south carolina':'America/New_York','south dakota':'America/Chicago','tennessee':'America/Chicago',
-      'texas':'America/Chicago','utah':'America/Denver','vermont':'America/New_York',
-      'virginia':'America/New_York','washington':'America/Los_Angeles','west virginia':'America/New_York',
-      'wisconsin':'America/Chicago','wyoming':'America/Denver'
-    };
-    var COUNTRY_TZ = {
-      'united states of america':'America/New_York','taiwan':'Asia/Taipei','canada':'America/Toronto',
-      'china':'Asia/Shanghai','japan':'Asia/Tokyo','south korea':'Asia/Seoul',
-      'united kingdom':'Europe/London','france':'Europe/Paris','netherlands':'Europe/Amsterdam',
-      'switzerland':'Europe/Zurich','iceland':'Atlantic/Reykjavik','italy':'Europe/Rome',
-      'greece':'Europe/Athens','germany':'Europe/Berlin','spain':'Europe/Madrid',
-      'portugal':'Europe/Lisbon','ireland':'Europe/Dublin','norway':'Europe/Oslo',
-      'sweden':'Europe/Stockholm','denmark':'Europe/Copenhagen','austria':'Europe/Vienna',
-      'belgium':'Europe/Brussels','czechia':'Europe/Prague','poland':'Europe/Warsaw',
-      'australia':'Australia/Sydney','new zealand':'Pacific/Auckland','mexico':'America/Mexico_City',
-      'brazil':'America/Sao_Paulo','india':'Asia/Kolkata','thailand':'Asia/Bangkok',
-      'vietnam':'Asia/Ho_Chi_Minh','singapore':'Asia/Singapore','indonesia':'Asia/Jakarta',
-      'philippines':'Asia/Manila','united arab emirates':'Asia/Dubai','turkey':'Europe/Istanbul',
-      'egypt':'Africa/Cairo','south africa':'Africa/Johannesburg','kenya':'Africa/Nairobi',
-      'russia':'Europe/Moscow','ukraine':'Europe/Kyiv','finland':'Europe/Helsinki'
-    };
-    var tzFmts = {};
-    function tzTime(tz) {
-      if (!(tz in tzFmts)) {
-        try {
-          tzFmts[tz] = new Intl.DateTimeFormat('en-US',
-            { timeZone: tz, hour12: false, hour: '2-digit', minute: '2-digit' });
-        } catch (e) { tzFmts[tz] = null; }
-      }
-      return tzFmts[tz] ? tzFmts[tz].format(new Date()) : null;
-    }
-    function resolveTz(item) {
-      if (item.e.tz) return item.e.tz;
-      var n = item.e.name.toLowerCase();
-      return item.cls === 's' ? STATE_TZ[n] : COUNTRY_TZ[n];
-    }
-
-    (function buildLogbook() {
-      var wrap = document.getElementById('logbook-rows');
-      var lbYear = document.getElementById('lb-year');
-      var all = vCountries.map(function(e) { return { e: e, cls: 'c' }; })
-        .concat(vStates.map(function(e) { return { e: e, cls: 's' }; }))
-        .sort(function(a, b) { return (b.e.year || 0) - (a.e.year || 0); });
-      all.forEach(function(item) {
-        var tz = resolveTz(item);
-        var right = tz
-          ? '<span class="tm" data-tz="' + tz + '">--:--</span>'
-          : '<span class="yr">' + (item.e.year || '\u2014') + '</span>';
-        var row = document.createElement('div');
-        row.className = 'lb-row' + (item.e.note ? ' noted' : '');
-        row.innerHTML =
-          '<span class="dot ' + item.cls + '">\u25cf</span>' +
-          '<span class="nm">' + item.e.name.toLowerCase() + '</span>' +
-          '<span class="leader"></span>' + right;
-        wrap.appendChild(row);
-        row.addEventListener('mouseenter', function() {
-          lbYear.textContent = item.e.year || 'undated';
-        });
-        row.addEventListener('mouseleave', function() {
-          lbYear.textContent = '\u00b7\u00b7\u00b7';
-        });
-        if (item.e.note) {
-          var note = document.createElement('div');
-          note.className = 'lb-note';
-          note.textContent = item.e.note;
-          wrap.appendChild(note);
-          row.addEventListener('click', function() { note.classList.toggle('open'); });
-        }
-      });
-      function tickLog() {
-        wrap.querySelectorAll('.tm').forEach(function(s) {
-          var t = tzTime(s.getAttribute('data-tz'));
-          if (t) s.textContent = t;
-        });
-      }
-      tickLog();
-      setInterval(tickLog, 20000);
-    })();
 
     /* ---- digital passages: recent github activity (lazy, keyless API) ---- */
     var digitalFix = document.getElementById('digital-fix');
