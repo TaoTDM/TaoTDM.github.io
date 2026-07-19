@@ -432,6 +432,7 @@ details.fix summary .ext {
 }
 .travel-toggle button:hover { color: var(--ink); }
 .travel-toggle button.on { color: var(--red); }
+.travel-toggle button { touch-action: manipulation; }
 
 .travelmap {
   position: relative;
@@ -451,6 +452,7 @@ details.fix summary .ext {
   /* hit-test the whole territory, not just its hairline stroke —
      fill:none shapes are otherwise only hoverable on the border */
   pointer-events: all;
+  touch-action: manipulation;
   vector-effect: non-scaling-stroke;
 }
 .travelmap .terr.visited {

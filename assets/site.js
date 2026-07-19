@@ -592,8 +592,10 @@
     countries: { svg: mapWorld, index: indexEntries(vCountries, norm(PLANNED_COUNTRIES)) },
     states:    { svg: mapStates, index: indexEntries(vStates, norm(PLANNED_STATES)) }
   };
-function activeLevel() {
-    return mapWorld.hidden ? levels.states : levels.countries;
+  var currentLevel = mapWorld.hasAttribute('hidden') ? 'states' : 'countries';
+  var coarsePointer = window.matchMedia('(pointer: coarse)').matches;
+  function activeLevel() {
+    return levels[currentLevel];
   }
 
   document.getElementById('travel-count').textContent =
@@ -676,14 +678,18 @@ function activeLevel() {
   function setLevel(name) {
     var apply = function() {
       var world = name === 'countries';
-      mapWorld.hidden = !world;
-      mapStates.hidden = world;
+      currentLevel = name;
+      mapWorld.toggleAttribute('hidden', !world);
+      mapStates.toggleAttribute('hidden', world);
       ttCountries.classList.toggle('on', world);
       ttStates.classList.toggle('on', !world);
+      ttCountries.setAttribute('aria-pressed', String(world));
+      ttStates.setAttribute('aria-pressed', String(!world));
       mapTip.style.display = 'none';
     };
-    /* morph between the two maps with the View Transitions API */
-    if (!reduced && document.startViewTransition) document.startViewTransition(apply);
+    /* View Transitions are intentionally desktop-only: mobile engines can
+       snapshot an SVG's old hidden state and leave the replacement blank. */
+    if (!reduced && !coarsePointer && document.startViewTransition) document.startViewTransition(apply);
     else apply();
   }
   ttCountries.addEventListener('click', function() { setLevel('countries'); });
@@ -789,18 +795,47 @@ function activeLevel() {
     document.getElementById('fn-body').textContent = entry.note;
     fieldNote.hidden = false;
   }
+
+  function noteEntryFor(target) {
+    var territory = target && target.closest ? target.closest('.terr[data-name]') : null;
+    if (!territory || !activeLevel().svg.contains(territory)) return null;
+    var hit = activeLevel().index[territory.getAttribute('data-name').toLowerCase()];
+    return hit && hit.entry.note ? hit.entry : null;
+  }
+
+  /* Touch browsers do not consistently synthesize click/dblclick for SVG
+     paths. Treat a short pointer gesture as a tap and open the note directly. */
+  var touchStart = null;
+  var suppressMapClickUntil = 0;
+  travelmap.addEventListener('pointerdown', function(e) {
+    if (e.pointerType === 'mouse') return;
+    touchStart = { id: e.pointerId, x: e.clientX, y: e.clientY };
+  });
+  travelmap.addEventListener('pointerup', function(e) {
+    if (e.pointerType === 'mouse' || !touchStart || touchStart.id !== e.pointerId) return;
+    var moved = Math.hypot(e.clientX - touchStart.x, e.clientY - touchStart.y) > 10;
+    touchStart = null;
+    suppressMapClickUntil = performance.now() + 500;
+    if (moved || activeLevel().pz.consumeDrag()) return;
+    var entry = noteEntryFor(e.target);
+    if (entry) showFieldNote(entry);
+  });
+  travelmap.addEventListener('pointercancel', function(e) {
+    if (touchStart && touchStart.id === e.pointerId) touchStart = null;
+  });
+
   /* a single click opens the note, but hold it ~220ms so a double-click
      (zoom) can cancel it \u2014 otherwise dbl-clicking a noted state like
      connecticut flashed the note open then zoomed out from under it */
   var noteTimer = null;
   travelmap.addEventListener('click', function(e) {
     clearTimeout(noteTimer);
+    if (performance.now() < suppressMapClickUntil) return;
     if (e.detail > 1) return; /* wait for dblclick zoom to finish */
     if (activeLevel().pz.consumeDrag()) return; /* a pan, not a click */
-    var name = e.target.getAttribute && e.target.getAttribute('data-name');
-    var hit = name && activeLevel().index[name.toLowerCase()];
-    if (!hit || !hit.entry.note) return;
-    noteTimer = setTimeout(function() { showFieldNote(hit.entry); }, 220);
+    var entry = noteEntryFor(e.target);
+    if (!entry) return;
+    noteTimer = setTimeout(function() { showFieldNote(entry); }, 220);
   });
   travelmap.addEventListener('dblclick', function() { clearTimeout(noteTimer); });
   document.getElementById('fn-close').addEventListener('click', function() {
