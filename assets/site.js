@@ -1,3 +1,11 @@
+import {
+  VISITED_COUNTRIES,
+  VISITED_STATES,
+  PLANNED_COUNTRIES,
+  PLANNED_STATES,
+  HOME_PORT
+} from './travel-data.js';
+
 (function() {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -51,126 +59,15 @@
   }, { threshold: 0.08 });
   document.querySelectorAll('.reveal').forEach(function(el) { revealer.observe(el); });
 
-  /* ---- live currents: weather bearing + pointer/scroll wake ---- */
-  function initCurrents() {
-    var field = document.getElementById('current-field');
-    var currentLines = document.getElementById('current-lines');
-    var wakeLines = document.getElementById('current-wake-lines');
-    var bearingGroup = document.getElementById('current-bearing');
-    var wakeBearingGroup = document.getElementById('current-wake-bearing');
-    var wakeSpot = document.getElementById('current-wake-spot');
-    var windRing = document.getElementById('wind-ring');
-    var coarse = window.matchMedia('(pointer: coarse)').matches;
-    var svgNS = 'http://www.w3.org/2000/svg';
-    var windDirection = 135;
-    var windSpeed = 6;
-    var dashOffset = 0;
-    var scrollBoost = 0;
-    var wakeOpacity = 0;
-    var lastPointerAt = 0;
-    var lastFrame = 0;
-    var lastScrollY = window.scrollY;
-    var lastScrollAt = performance.now();
-    var frameId = 0;
-    var resizeTimer = 0;
-
-    function pathData(i, count) {
-      var y = -260 + i * (1520 / Math.max(1, count - 1));
-      var amp = 24 + (i % 5) * 8;
-      var phase = (i % 4) * 37;
-      return 'M -460 ' + y.toFixed(1) +
-        ' C -280 ' + (y + amp).toFixed(1) + ', -90 ' + (y - amp - phase * 0.08).toFixed(1) +
-        ', 110 ' + (y + phase * 0.06).toFixed(1) +
-        ' S 480 ' + (y + amp * 0.72).toFixed(1) + ', 690 ' + (y - amp * 0.55).toFixed(1) +
-        ' S 1090 ' + (y + amp * 0.8).toFixed(1) + ', 1460 ' + y.toFixed(1);
-    }
-
-    function buildLines() {
-      var count = window.innerWidth <= 640 ? 13 : 21;
-      currentLines.textContent = '';
-      wakeLines.textContent = '';
-      for (var i = 0; i < count; i++) {
-        var d = pathData(i, count);
-        var basePath = document.createElementNS(svgNS, 'path');
-        var wakePath = document.createElementNS(svgNS, 'path');
-        basePath.setAttribute('d', d);
-        wakePath.setAttribute('d', d);
-        currentLines.appendChild(basePath);
-        wakeLines.appendChild(wakePath);
-      }
-    }
-
-    function setWeather(direction, speed) {
-      if (Number.isFinite(direction)) windDirection = ((direction % 360) + 360) % 360;
-      if (Number.isFinite(speed)) windSpeed = Math.max(0, Math.min(80, speed));
-      /* SVG courses run west-to-east; rotate them toward where the wind is going. */
-      var flowRotation = (windDirection + 90) % 360;
-      var transform = 'rotate(' + flowRotation.toFixed(1) + 'deg)';
-      bearingGroup.style.transform = transform;
-      wakeBearingGroup.style.transform = transform;
-      windRing.style.transform = 'rotate(' + windDirection.toFixed(1) + 'deg)';
-      windRing.style.opacity = Math.min(0.95, 0.42 + windSpeed / 35).toFixed(2);
-    }
-
-    function noteScroll(y) {
-      if (reduced) return;
-      var now = performance.now();
-      var elapsed = Math.max(16, now - lastScrollAt);
-      var velocity = Math.abs(y - lastScrollY) / elapsed;
-      scrollBoost = Math.min(32, Math.max(scrollBoost, velocity * 14));
-      lastScrollY = y;
-      lastScrollAt = now;
-    }
-
-    function frame(now) {
-      var dt = Math.min(0.06, Math.max(0, (now - (lastFrame || now)) / 1000));
-      lastFrame = now;
-      scrollBoost *= Math.exp(-dt * 3.2);
-      if (now - lastPointerAt > 850) wakeOpacity *= Math.exp(-dt * 4.5);
-      dashOffset -= dt * (5 + windSpeed * 1.15 + scrollBoost * 0.8);
-      currentLines.style.strokeDashoffset = dashOffset.toFixed(2);
-      wakeLines.style.strokeDashoffset = dashOffset.toFixed(2);
-      field.style.setProperty('--current-opacity',
-        (0.72 + Math.min(1, scrollBoost / 24) * 0.2).toFixed(3));
-      field.style.setProperty('--wake-opacity', wakeOpacity.toFixed(3));
-      frameId = requestAnimationFrame(frame);
-    }
-
-    function start() {
-      if (reduced || frameId || document.hidden) return;
-      lastFrame = 0;
-      frameId = requestAnimationFrame(frame);
-    }
-
-    function stop() {
-      if (frameId) cancelAnimationFrame(frameId);
-      frameId = 0;
-    }
-
-    if (!coarse && !reduced) {
-      document.addEventListener('pointermove', function(e) {
-        wakeSpot.setAttribute('cx', (e.clientX / Math.max(1, window.innerWidth) * 1000).toFixed(1));
-        wakeSpot.setAttribute('cy', (e.clientY / Math.max(1, window.innerHeight) * 1000).toFixed(1));
-        wakeOpacity = 1;
-        lastPointerAt = performance.now();
-      }, { passive: true });
-    }
-
-    document.addEventListener('visibilitychange', function() {
-      if (document.hidden) stop();
-      else start();
-    });
-    window.addEventListener('resize', function() {
-      clearTimeout(resizeTimer);
-      resizeTimer = setTimeout(buildLines, 180);
-    });
-
-    buildLines();
-    setWeather(windDirection, windSpeed);
-    start();
-    return { setWeather: setWeather, noteScroll: noteScroll };
+  /* ---- weather bearing: the compass ring updates only when data changes ---- */
+  var windRing = document.getElementById('wind-ring');
+  function setWindRing(direction, speed) {
+    if (!Number.isFinite(direction) || !Number.isFinite(speed)) return;
+    direction = ((direction % 360) + 360) % 360;
+    speed = Math.max(0, Math.min(80, speed));
+    windRing.style.transform = 'rotate(' + direction.toFixed(1) + 'deg)';
+    windRing.style.opacity = Math.min(0.95, 0.42 + speed / 35).toFixed(2);
   }
-  var currents = initCurrents();
 
   /* ---- scroll: compass bearing (spring-damped pendulum) + ruler marker ----
      The needle doesn't jump straight to its target angle. Every animation
@@ -205,7 +102,6 @@
     var max = h.scrollHeight - h.clientHeight;
     var p = max > 0 ? h.scrollTop / max : 0;
     latMarker.style.top = (p * (h.clientHeight - 12)) + 'px';
-    currents.noteScroll(h.scrollTop);
     if (reduced) {
       needle.style.transform = 'rotate(' + (p * 360) + 'deg)';
       return;
@@ -473,7 +369,7 @@
         ' ↓' + sunFmt.format(new Date(openMeteo.sunset));
     }
     weatherMeta = selected;
-    currents.setWeather(selected.windDirection, selected.windSpeed);
+    setWindRing(selected.windDirection, selected.windSpeed);
     updateWeatherMetadata();
     renderConditions();
   }
@@ -502,7 +398,7 @@
   }
 
   renderConditions();
-  currents.setWeather(DEFAULT_WEATHER.windDirection, DEFAULT_WEATHER.windSpeed);
+  setWindRing(DEFAULT_WEATHER.windDirection, DEFAULT_WEATHER.windSpeed);
   loadWeather();
   setInterval(loadWeather, 15 * 60000);
   setInterval(updateWeatherMetadata, 60000);
@@ -575,7 +471,6 @@
   var mapStates = document.getElementById('map-states');
   var mapTip = document.getElementById('map-tip');
   var fieldNote = document.getElementById('field-note');
-  var mapsBuilt = false;
 
   /* normalise entries ('Taiwan' -> {name:'Taiwan'}) and index by name */
   function norm(list) {
@@ -589,8 +484,18 @@
   }
   var vCountries = norm(VISITED_COUNTRIES), vStates = norm(VISITED_STATES);
   var levels = {
-    countries: { svg: mapWorld, index: indexEntries(vCountries, norm(PLANNED_COUNTRIES)) },
-    states:    { svg: mapStates, index: indexEntries(vStates, norm(PLANNED_STATES)) }
+    countries: {
+      svg: mapWorld,
+      index: indexEntries(vCountries, norm(PLANNED_COUNTRIES)),
+      built: false,
+      loading: null
+    },
+    states: {
+      svg: mapStates,
+      index: indexEntries(vStates, norm(PLANNED_STATES)),
+      built: false,
+      loading: null
+    }
   };
   var currentLevel = mapWorld.hasAttribute('hidden') ? 'states' : 'countries';
   var coarsePointer = window.matchMedia('(pointer: coarse)').matches;
@@ -608,7 +513,7 @@
     return el;
   }
 
-  /* ---- building the two maps (lazy, on first open) ---- */
+  /* ---- map geometry is split into two Vite chunks and loaded on demand ---- */
   function addHatch(svg) {
     svg.style.setProperty('--planned-fill', 'url(#hatch-' + svg.id + ')');
     var defs = svgEl('defs', {});
@@ -662,14 +567,33 @@
     svg.appendChild(g);
   }
 
+  function ensureMap(name) {
+    var level = levels[name];
+    if (level.built) return Promise.resolve(level);
+    if (level.loading) return level.loading;
+
+    var geometry = name === 'countries'
+      ? import('./world-paths.js')
+      : import('./us-states-paths.js');
+    level.loading = geometry.then(function(module) {
+      var paths = name === 'countries' ? module.WORLD_PATHS : module.US_STATE_PATHS;
+      buildMap(level, paths);
+      if (name === 'countries') {
+        drawHome(mapWorld, module.lonLatToXY(HOME_PORT.lon, HOME_PORT.lat));
+      } else {
+        drawHome(mapStates, HOME_PORT.statesXY);
+      }
+      level.built = true;
+      return level;
+    }).catch(function(error) {
+      level.loading = null;
+      throw error;
+    });
+    return level.loading;
+  }
+
   travelsFix.addEventListener('toggle', function() {
-    if (!travelsFix.open || mapsBuilt) return;
-    if (typeof WORLD_PATHS === 'undefined' || typeof US_STATE_PATHS === 'undefined') return;
-    mapsBuilt = true;
-    buildMap(levels.countries, WORLD_PATHS);
-    buildMap(levels.states, US_STATE_PATHS);
-    if (window.lonLatToXY) drawHome(mapWorld, lonLatToXY(HOME_PORT.lon, HOME_PORT.lat));
-    drawHome(mapStates, HOME_PORT.statesXY);
+    if (travelsFix.open) ensureMap(currentLevel);
   });
 
   /* ---- countries / us states toggle ---- */
@@ -691,6 +615,7 @@
        snapshot an SVG's old hidden state and leave the replacement blank. */
     if (!reduced && !coarsePointer && document.startViewTransition) document.startViewTransition(apply);
     else apply();
+    ensureMap(name);
   }
   ttCountries.addEventListener('click', function() { setLevel('countries'); });
   ttStates.addEventListener('click', function() { setLevel('states'); });
@@ -776,7 +701,8 @@
   travelmap.addEventListener('mousemove', function(e) {
     var name = e.target.getAttribute && e.target.getAttribute('data-name');
     if (!name) { mapTip.style.display = 'none'; return; }
-    var hit = activeLevel().index[name.toLowerCase()];
+    var owner = mapWorld.contains(e.target) ? levels.countries : levels.states;
+    var hit = owner.index[name.toLowerCase()];
     var status = !hit ? '<span class="no">uncharted</span>'
       : hit.status === 'planned' ? '<span class="plan">on the itinerary</span>'
       : '<span class="yes">charted' + (hit.entry.year ? ' ' + hit.entry.year : '') + ' \u2713</span>';
@@ -798,8 +724,11 @@
 
   function noteEntryFor(target) {
     var territory = target && target.closest ? target.closest('.terr[data-name]') : null;
-    if (!territory || !activeLevel().svg.contains(territory)) return null;
-    var hit = activeLevel().index[territory.getAttribute('data-name').toLowerCase()];
+    if (!territory) return null;
+    var owner = mapWorld.contains(territory) ? levels.countries
+      : mapStates.contains(territory) ? levels.states : null;
+    if (!owner) return null;
+    var hit = owner.index[territory.getAttribute('data-name').toLowerCase()];
     return hit && hit.entry.note ? hit.entry : null;
   }
 
@@ -912,11 +841,12 @@
   var eggNames = null;
   function travelEgg(buf) {
     if (!eggNames) {
-      if (typeof WORLD_PATHS === 'undefined' || typeof US_STATE_PATHS === 'undefined') return false;
       /* states before countries so 'georgia' prefers the state;
          longest names first so 'south korea' beats hypothetical suffixes */
-      eggNames = US_STATE_PATHS.map(function(t) { return { n: t.n.toLowerCase(), level: 'states' }; })
-        .concat(WORLD_PATHS.map(function(t) { return { n: t.n.toLowerCase(), level: 'countries' }; }))
+      eggNames = norm(VISITED_STATES).concat(norm(PLANNED_STATES))
+        .map(function(t) { return { n: t.name.toLowerCase(), level: 'states' }; })
+        .concat(norm(VISITED_COUNTRIES).concat(norm(PLANNED_COUNTRIES))
+          .map(function(t) { return { n: t.name.toLowerCase(), level: 'countries' }; }))
         .sort(function(a, b) { return b.n.length - a.n.length; });
     }
     for (var i = 0; i < eggNames.length; i++) {
@@ -926,17 +856,18 @@
       setLevel(egg.level);
       var lvl = activeLevel();
       lvl.pz.reset();
-      var el = null;
-      lvl.svg.querySelectorAll('.terr').forEach(function(t) {
-        if (t.getAttribute('data-name').toLowerCase() === egg.n) el = t;
-      });
-      if (el) {
+      ensureMap(egg.level).then(function() {
+        var el = null;
+        lvl.svg.querySelectorAll('.terr').forEach(function(t) {
+          if (t.getAttribute('data-name').toLowerCase() === egg.n) el = t;
+        });
+        if (!el) return;
         travelsFix.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
         el.classList.remove('flash');
         void el.getBBox();
         el.classList.add('flash');
         setTimeout(function() { el.classList.remove('flash'); }, 2200);
-      }
+      });
       return true;
     }
     return false;

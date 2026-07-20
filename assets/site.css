@@ -1,6 +1,6 @@
 @font-face {
   font-family: "Maple Mono";
-  src: url("../fonts/MapleMonoNormal-NF-Regular.ttf") format("truetype");
+  src: url("../fonts/MapleMonoSubset.woff2") format("woff2");
   font-weight: 400;
   font-display: swap;
 }
@@ -57,49 +57,6 @@ body::before {
     linear-gradient(var(--grid-major) 1px, transparent 1px),
     linear-gradient(90deg, var(--grid-major) 1px, transparent 1px);
   background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
-}
-
-/* ================= live currents ================= */
-#current-field {
-  position: fixed;
-  inset: 0;
-  z-index: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  overflow: hidden;
-  opacity: var(--current-opacity, 0.72);
-  transition: opacity 0.35s;
-}
-#current-lines path,
-#current-wake-lines path {
-  fill: none;
-  stroke: var(--blue);
-  stroke-linecap: round;
-  stroke-dasharray: 15 23;
-  vector-effect: non-scaling-stroke;
-}
-#current-lines path {
-  stroke-width: 0.8;
-  stroke-opacity: 0.105;
-}
-#current-wake-lines path {
-  stroke-width: 1.15;
-  stroke-opacity: 0.34;
-}
-#current-bearing,
-#current-wake-bearing {
-  transform-box: view-box;
-  transform-origin: 500px 500px;
-  transition: transform 1.4s cubic-bezier(.2,.7,.2,1);
-}
-#current-wake-layer {
-  opacity: var(--wake-opacity, 0);
-  transition: opacity 0.22s;
-}
-html[data-watch="night"] #current-lines path,
-html[data-watch="night"] #current-wake-lines path {
-  stroke: var(--red);
 }
 
 /* ================= edge rulers ================= */
@@ -815,8 +772,6 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
   }
   .reveal { opacity: 1; transform: none; }
   #routes .course { stroke-dashoffset: 0; }
-  #current-lines path { stroke-dasharray: none; stroke-opacity: 0.075; }
-  #current-wake-layer { display: none; }
 }
 
 /* ================= print: the chart on actual paper ================= */
@@ -841,7 +796,7 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
     font-size: 11px;
   }
   /* every fixed/floating fixture and interactive-only chrome is dropped */
-  .ruler, .crop, #lat-marker, #compass, #statusbar, #current-field,
+  .ruler, .crop, #lat-marker, #compass, #statusbar,
   #overlay, #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
   .travel-toggle, #routes { display: none !important; }
   body::before, body::after { display: none !important; }
