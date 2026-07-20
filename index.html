@@ -38,25 +38,6 @@
   <div class="crop crop-tr" aria-hidden="true"></div>
   <div class="crop crop-br" aria-hidden="true"></div>
 
-  <svg id="current-field" viewBox="0 0 1000 1000" preserveAspectRatio="none" aria-hidden="true">
-    <defs>
-      <radialGradient id="current-wake-gradient">
-        <stop offset="0" stop-color="white" stop-opacity="1"/>
-        <stop offset="0.45" stop-color="white" stop-opacity="0.72"/>
-        <stop offset="1" stop-color="black" stop-opacity="0"/>
-      </radialGradient>
-      <mask id="current-wake-mask" x="0" y="0" width="1000" height="1000"
-            maskUnits="userSpaceOnUse" maskContentUnits="userSpaceOnUse">
-        <rect width="1000" height="1000" fill="black"/>
-        <circle id="current-wake-spot" cx="-250" cy="-250" r="190" fill="url(#current-wake-gradient)"/>
-      </mask>
-    </defs>
-    <g id="current-bearing"><g id="current-lines"></g></g>
-    <g id="current-wake-layer" mask="url(#current-wake-mask)">
-      <g id="current-wake-bearing"><g id="current-wake-lines"></g></g>
-    </g>
-  </svg>
-
   <main id="main">
 
     <!-- ============ cartouche ============ -->
@@ -476,9 +457,6 @@
     </div>
   </div>
 
-<script src="assets/world-paths.js"></script>
-<script src="assets/us-states-paths.js"></script>
-<script src="assets/travel-data.js"></script>
-<script src="assets/site.js"></script>
+<script type="module" src="/assets/site.js"></script>
 </body>
 </html>
