@@ -4,7 +4,9 @@ import {
   PLANNED_COUNTRIES,
   PLANNED_STATES,
   HOME_PORT
-} from './travel-data.js';
+} from './travel-data.js?v=20260720-2';
+
+document.documentElement.classList.add('js-ready');
 
 (function() {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -573,8 +575,8 @@ import {
     if (level.loading) return level.loading;
 
     var geometry = name === 'countries'
-      ? import('./world-paths.js')
-      : import('./us-states-paths.js');
+      ? import('./world-paths.js?v=20260720-2')
+      : import('./us-states-paths.js?v=20260720-2');
     level.loading = geometry.then(function(module) {
       var paths = name === 'countries' ? module.WORLD_PATHS : module.US_STATE_PATHS;
       buildMap(level, paths);
