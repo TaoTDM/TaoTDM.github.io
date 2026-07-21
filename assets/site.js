@@ -11,22 +11,139 @@ document.documentElement.classList.add('js-ready');
 (function() {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---- night watch toggle ---- */
-  var watch = document.getElementById('watch-toggle');
-  function setWatch(w) {
-    if (w === 'night') {
-      document.documentElement.setAttribute('data-watch', 'night');
-      watch.textContent = '[day watch]';
-    } else {
-      document.documentElement.removeAttribute('data-watch');
-      watch.textContent = '[night watch]';
-    }
-    try { localStorage.setItem('v3-watch', w); } catch (e) {}
+  /* ---- rain: a canvas particle field, the page's centerpiece ----
+     Two depth layers (near = longer/faster/brighter, far = short/faint)
+     with a slowly decaying wind gust for drift. Painted every frame only
+     while the atmosphere is on; skipped entirely under reduced-motion. */
+  var rainCanvas = document.getElementById('rain');
+  var rainCtx = rainCanvas.getContext('2d');
+  var drops = [];
+  var rainRAF = null;
+  var rainW = 0, rainH = 0, gust = 0;
+
+  function makeDrop(fromTop) {
+    var near = Math.random() < 0.4;
+    return {
+      x: Math.random() * (rainW + 60) - 30,
+      y: fromTop ? -20 : Math.random() * rainH,
+      len: near ? 15 + Math.random() * 12 : 7 + Math.random() * 8,
+      speed: near ? 9 + Math.random() * 6 : 4 + Math.random() * 4,
+      alpha: near ? 0.16 + Math.random() * 0.15 : 0.05 + Math.random() * 0.09,
+      w: near ? 1.0 : 0.6
+    };
   }
-  try { if (localStorage.getItem('v3-watch') === 'night') setWatch('night'); } catch (e) {}
-  watch.addEventListener('click', function() {
-    setWatch(document.documentElement.hasAttribute('data-watch') ? 'day' : 'night');
+  function buildDrops() {
+    var count = Math.max(45, Math.min(230, Math.round(rainW * rainH / 12000)));
+    drops = [];
+    for (var i = 0; i < count; i++) drops.push(makeDrop(false));
+  }
+  function sizeRain() {
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    rainW = window.innerWidth;
+    rainH = window.innerHeight;
+    rainCanvas.width = rainW * dpr;
+    rainCanvas.height = rainH * dpr;
+    rainCanvas.style.width = rainW + 'px';
+    rainCanvas.style.height = rainH + 'px';
+    rainCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildDrops();
+  }
+  function drawRain() {
+    rainCtx.clearRect(0, 0, rainW, rainH);
+    gust *= 0.96;
+    if (Math.random() < 0.004) gust = (Math.random() - 0.3) * 2.4;
+    var slant = 0.9 + gust;
+    for (var i = 0; i < drops.length; i++) {
+      var d = drops[i];
+      rainCtx.strokeStyle = 'rgba(190, 212, 210,' + d.alpha + ')';
+      rainCtx.lineWidth = d.w;
+      rainCtx.beginPath();
+      rainCtx.moveTo(d.x, d.y);
+      rainCtx.lineTo(d.x - slant * (d.len / d.speed) * 2, d.y - d.len);
+      rainCtx.stroke();
+      d.y += d.speed;
+      d.x += slant * 0.6;
+      if (d.y - d.len > rainH) {
+        var nd = makeDrop(true);
+        d.x = nd.x; d.y = nd.y; d.len = nd.len;
+        d.speed = nd.speed; d.alpha = nd.alpha; d.w = nd.w;
+      }
+    }
+    rainRAF = requestAnimationFrame(drawRain);
+  }
+  function startRain() {
+    if (reduced || rainRAF) return;
+    rainRAF = requestAnimationFrame(drawRain);
+  }
+  function stopRain() {
+    if (rainRAF) { cancelAnimationFrame(rainRAF); rainRAF = null; }
+    rainCtx.clearRect(0, 0, rainW, rainH);
+  }
+  window.addEventListener('resize', sizeRain);
+  sizeRain();
+
+  /* ---- cursor lantern: a warm light that follows the pointer (smoothed) ---- */
+  var root = document.documentElement;
+  var lantX = window.innerWidth / 2, lantY = window.innerHeight * 0.26;
+  var lantTX = lantX, lantTY = lantY, lantRAF = null;
+  function lanternStep() {
+    lantX += (lantTX - lantX) * 0.12;
+    lantY += (lantTY - lantY) * 0.12;
+    root.style.setProperty('--lx', (lantX / window.innerWidth * 100).toFixed(2) + '%');
+    root.style.setProperty('--ly', (lantY / window.innerHeight * 100).toFixed(2) + '%');
+    if (Math.abs(lantTX - lantX) > 0.4 || Math.abs(lantTY - lantY) > 0.4) {
+      lantRAF = requestAnimationFrame(lanternStep);
+    } else { lantRAF = null; }
+  }
+  root.style.setProperty('--lx', '50%');
+  root.style.setProperty('--ly', reduced ? '22%' : '26%');
+  if (!reduced) {
+    window.addEventListener('pointermove', function(e) {
+      if (e.pointerType === 'touch') return;
+      lantTX = e.clientX; lantTY = e.clientY;
+      if (!lantRAF) lantRAF = requestAnimationFrame(lanternStep);
+    }, { passive: true });
+  }
+
+  /* ---- time-of-day lighting (dawn / dusk / night), persisted ---- */
+  var todBtns = Array.prototype.slice.call(document.querySelectorAll('.tod-btn'));
+  function setTod(tod) {
+    if (tod === 'night') root.removeAttribute('data-tod');
+    else root.setAttribute('data-tod', tod);
+    todBtns.forEach(function(b) {
+      var on = b.getAttribute('data-tod') === tod;
+      b.classList.toggle('on', on);
+      b.setAttribute('aria-pressed', String(on));
+    });
+    try { localStorage.setItem('v4-tod', tod); } catch (e) {}
+  }
+  var savedTod = 'night';
+  try { savedTod = localStorage.getItem('v4-tod') || 'night'; } catch (e) {}
+  if (['dawn', 'dusk', 'night'].indexOf(savedTod) === -1) savedTod = 'night';
+  setTod(savedTod);
+  todBtns.forEach(function(b) {
+    b.addEventListener('click', function() { setTod(b.getAttribute('data-tod')); });
   });
+
+  /* ---- [mist] toggle: mist + rain on/off, persisted ---- */
+  var watch = document.getElementById('watch-toggle');
+  var mistOn = true;
+  function setMist(on) {
+    mistOn = on;
+    if (on) {
+      document.documentElement.removeAttribute('data-mist');
+      watch.textContent = 'hide mist';
+      startRain();
+    } else {
+      document.documentElement.setAttribute('data-mist', 'off');
+      watch.textContent = 'show mist';
+      stopRain();
+    }
+    try { localStorage.setItem('v4-mist', on ? 'on' : 'off'); } catch (e) {}
+  }
+  try { if (localStorage.getItem('v4-mist') === 'off') mistOn = false; } catch (e) {}
+  setMist(mistOn);
+  watch.addEventListener('click', function() { setMist(!mistOn); });
 
   /* ---- email: copy with toast ---- */
   var email = 'tao' + '@' + 'taotdm.com';
@@ -147,7 +264,7 @@ document.documentElement.classList.add('js-ready');
   var NWS_MAX_AGE = 90 * 60000;
   var OPEN_METEO_MAX_AGE = 2 * 3600000;
   var DEFAULT_WEATHER = {
-    source: 'charted fallback',
+    source: 'local estimate',
     sourceCode: 'fallback',
     station: '',
     description: 'fair weather',
@@ -334,7 +451,7 @@ document.documentElement.classList.add('js-ready');
   }
 
   function weatherAgeText(weather) {
-    if (!finite(weather.observedAt)) return 'deterministic fallback';
+    if (!finite(weather.observedAt)) return 'estimated';
     var minutes = Math.max(0, Math.round((Date.now() - weather.observedAt) / 60000));
     var verb = weather.sourceCode === 'open-meteo' ? 'valid' : 'observed';
     if (minutes < 2) return verb + ' just now';
@@ -444,7 +561,7 @@ document.documentElement.classList.add('js-ready');
     printing = false;
   });
 
-  /* ---- sextant easter egg ---- */
+  /* ---- rain easter egg ---- */
   var overlay = document.getElementById('overlay');
   var inset = document.getElementById('inset');
   var buffer = '';
@@ -454,7 +571,7 @@ document.documentElement.classList.add('js-ready');
     if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key.length === 1) {
       buffer = (buffer + e.key.toLowerCase()).slice(-32);
-      if (buffer.slice(-7) === 'sextant') { buffer = ''; overlay.classList.add('open'); }
+      if (buffer.slice(-4) === 'rain') { buffer = ''; overlay.classList.add('open'); }
       else if (travelEgg(buffer)) { buffer = ''; }
     }
   });
@@ -524,7 +641,7 @@ document.documentElement.classList.add('js-ready');
       patternUnits: 'userSpaceOnUse', patternTransform: 'rotate(45)'
     });
     var line = svgEl('line', { x1: 0, y1: 0, x2: 0, y2: 5, 'stroke-width': 1 });
-    line.style.stroke = 'color-mix(in srgb, var(--blue) 45%, transparent)';
+    line.style.stroke = 'color-mix(in srgb, var(--water) 45%, transparent)';
     pat.appendChild(line);
     defs.appendChild(pat);
     svg.appendChild(defs);
@@ -705,9 +822,9 @@ document.documentElement.classList.add('js-ready');
     if (!name) { mapTip.style.display = 'none'; return; }
     var owner = mapWorld.contains(e.target) ? levels.countries : levels.states;
     var hit = owner.index[name.toLowerCase()];
-    var status = !hit ? '<span class="no">uncharted</span>'
-      : hit.status === 'planned' ? '<span class="plan">on the itinerary</span>'
-      : '<span class="yes">charted' + (hit.entry.year ? ' ' + hit.entry.year : '') + ' \u2713</span>';
+    var status = !hit ? '<span class="no">not visited</span>'
+      : hit.status === 'planned' ? '<span class="plan">planned</span>'
+      : '<span class="yes">visited' + (hit.entry.year ? ' ' + hit.entry.year : '') + ' \u2713</span>';
     mapTip.innerHTML = name.toLowerCase() + ' \u00b7 ' + status;
     var r = travelmap.getBoundingClientRect();
     mapTip.style.left = Math.min(e.clientX - r.left + 14, r.width - 190) + 'px';
@@ -718,7 +835,7 @@ document.documentElement.classList.add('js-ready');
 
   function showFieldNote(entry) {
     document.getElementById('fn-title').textContent =
-      'field note \u00b7 ' + entry.name.toLowerCase() +
+      'note \u00b7 ' + entry.name.toLowerCase() +
       (entry.year ? ' \u00b7 ' + entry.year : '');
     document.getElementById('fn-body').textContent = entry.note;
     fieldNote.hidden = false;
@@ -778,29 +895,29 @@ document.documentElement.classList.add('js-ready');
   var ghLoaded = false;
   function ago(iso) {
     var s = (Date.now() - new Date(iso).getTime()) / 1000;
-    if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min past';
-    if (s < 86400) return Math.round(s / 3600) + ' hr past';
+    if (s < 3600) return Math.max(1, Math.round(s / 60)) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' hr ago';
     var d = Math.round(s / 86400);
-    if (d < 14) return d + ' days past';
-    if (d < 60) return Math.round(d / 7) + ' wk past';
-    return Math.round(d / 30) + ' mo past';
+    if (d < 14) return d + ' days ago';
+    if (d < 60) return Math.round(d / 7) + ' wk ago';
+    return Math.round(d / 30) + ' mo ago';
   }
   function ghDescribe(ev) {
-    var repo = (ev.repo && ev.repo.name || '/').split('/')[1] || 'a chart';
+    var repo = (ev.repo && ev.repo.name || '/').split('/')[1] || 'a repo';
     var p = ev.payload || {};
     switch (ev.type) {
       case 'PushEvent':
         var n = p.size || (p.commits && p.commits.length) || 1;
-        return 'charted ' + n + ' commit' + (n > 1 ? 's' : '') + ' to ' + repo;
+        return 'pushed ' + n + ' commit' + (n > 1 ? 's' : '') + ' to ' + repo;
       case 'CreateEvent':
-        return (p.ref_type === 'repository' ? 'founded ' : 'hoisted ' + p.ref_type + ' in ') + repo;
+        return (p.ref_type === 'repository' ? 'created ' : 'created ' + p.ref_type + ' in ') + repo;
       case 'PullRequestEvent': return (p.action || 'opened') + ' a pull request in ' + repo;
       case 'IssuesEvent':      return (p.action || 'opened') + ' an issue in ' + repo;
-      case 'IssueCommentEvent':return 'left word on ' + repo;
+      case 'IssueCommentEvent':return 'commented on ' + repo;
       case 'WatchEvent':       return 'starred ' + repo;
       case 'ForkEvent':        return 'forked ' + repo;
-      case 'ReleaseEvent':     return 'published a release of ' + repo;
-      case 'DeleteEvent':      return 'struck ' + p.ref_type + ' from ' + repo;
+      case 'ReleaseEvent':     return 'released ' + repo;
+      case 'DeleteEvent':      return 'deleted ' + p.ref_type + ' from ' + repo;
       default:                 return ev.type.replace('Event', '').toLowerCase() + ' · ' + repo;
     }
   }
@@ -809,7 +926,7 @@ document.documentElement.classList.add('js-ready');
     ghLoaded = true;
     var rows = document.getElementById('gh-rows');
     var status = document.getElementById('gh-status');
-    if (typeof fetch === 'undefined') { status.textContent = 'the wireless is down.'; return; }
+    if (typeof fetch === 'undefined') { status.textContent = 'github is unreachable.'; return; }
     fetch('https://api.github.com/users/TaoTDM/events/public?per_page=8')
       .then(function(r) { if (!r.ok) throw 0; return r.json(); })
       .then(function(events) {
@@ -828,10 +945,10 @@ document.documentElement.classList.add('js-ready');
         }).join('');
       })
       .catch(function() {
-        status.textContent = 'the wireless is quiet — ';
+        status.textContent = 'nothing recent — ';
         var a = document.createElement('a');
         a.href = 'https://github.com/TaoTDM'; a.target = '_blank'; a.rel = 'noreferrer';
-        a.textContent = 'visit the harbour directly';
+        a.textContent = 'visit github directly';
         status.appendChild(a);
       });
   }
@@ -874,7 +991,7 @@ document.documentElement.classList.add('js-ready');
     }
     return false;
   }
-  /* ---- command palette · ship's helm ( / or ⌘K ) ---- */
+  /* ---- command palette ( / or ⌘K ) ---- */
   (function helm() {
     var ov = document.getElementById('helm-overlay');
     var input = document.getElementById('helm-input');
@@ -886,22 +1003,21 @@ document.documentElement.classList.add('js-ready');
       if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
     }
     var cmds = [
-      { name: 'about', kind: 'plate', run: function() { goTo('about'); } },
-      { name: 'experience', kind: 'plate', run: function() { goTo('experience'); } },
-      { name: 'projects', kind: 'plate', run: function() { goTo('projects'); } },
-      { name: 'uni', kind: 'plate', run: function() { goTo('uni'); } },
-      { name: 'honors', kind: 'plate', run: function() { goTo('honors'); } },
-      { name: 'travels', kind: 'plate', run: function() { goTo('travels'); } },
-      { name: 'chart of travels', kind: 'chart', run: function() { travelsFix.open = true; goTo('travels'); } },
-      { name: 'countries map', kind: 'view', run: function() { travelsFix.open = true; setLevel('countries'); goTo('travels'); } },
-      { name: 'us states map', kind: 'view', run: function() { travelsFix.open = true; setLevel('states'); goTo('travels'); } },
-      { name: 'toggle night watch', kind: 'helm', run: function() { setWatch(document.documentElement.hasAttribute('data-watch') ? 'day' : 'night'); } },
-      { name: 'print the chart', kind: 'helm', run: function() { window.print(); } },
-      { name: 'copy email', kind: 'hail', run: copyEmailToClipboard },
-      { name: 'open resume', kind: 'hail', run: function() { window.open(RESUME, '_blank', 'noopener'); } },
-      { name: 'github', kind: 'hail', run: function() { window.open('https://github.com/TaoTDM', '_blank', 'noopener'); } },
-      { name: 'linkedin', kind: 'hail', run: function() { window.open('https://www.linkedin.com/in/shi-tao-chang/', '_blank', 'noopener'); } },
-      { name: 'the sextant', kind: '???', run: function() { overlay.classList.add('open'); } }
+      { name: 'about', kind: 'section', run: function() { goTo('about'); } },
+      { name: 'experience', kind: 'section', run: function() { goTo('experience'); } },
+      { name: 'projects', kind: 'section', run: function() { goTo('projects'); } },
+      { name: 'uni', kind: 'section', run: function() { goTo('uni'); } },
+      { name: 'honors', kind: 'section', run: function() { goTo('honors'); } },
+      { name: 'travels', kind: 'section', run: function() { travelsFix.open = true; goTo('travels'); } },
+      { name: 'countries map', kind: 'map', run: function() { travelsFix.open = true; setLevel('countries'); goTo('travels'); } },
+      { name: 'us states map', kind: 'map', run: function() { travelsFix.open = true; setLevel('states'); goTo('travels'); } },
+      { name: 'clear mist', kind: 'action', run: function() { setMist(!mistOn); } },
+      { name: 'print', kind: 'action', run: function() { window.print(); } },
+      { name: 'copy email', kind: 'link', run: copyEmailToClipboard },
+      { name: 'open resume', kind: 'link', run: function() { window.open(RESUME, '_blank', 'noopener'); } },
+      { name: 'github', kind: 'link', run: function() { window.open('https://github.com/TaoTDM', '_blank', 'noopener'); } },
+      { name: 'linkedin', kind: 'link', run: function() { window.open('https://www.linkedin.com/in/shi-tao-chang/', '_blank', 'noopener'); } },
+      { name: 'rain', kind: 'secret', run: function() { overlay.classList.add('open'); } }
     ];
     var matches = cmds.slice(), sel = 0;
     function render() {

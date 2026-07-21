@@ -6,237 +6,331 @@
 }
 
 :root {
-  --red: #A4133C;
-  --blue: #1376A4;
-  --ink: #1A1A1A;
-  --paper: #fffefa;
-  --dash: #b8b2a4;
-  --grid: rgba(19, 118, 164, 0.07);
-  --grid-major: rgba(19, 118, 164, 0.13);
-  --card-bg: rgba(164, 19, 60, 0.03);
-  --serif: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  /* cool graphite stone — dark gray, misty, one warm light */
+  --stone: #24292b;       /* lifted dark-gray ground / content sheet */
+  --stone-2: #2c3234;     /* raised panels / cards */
+  --deep: #14181a;        /* deepest shadow */
+  --ink: #e6e8e4;         /* prose text */
+  --ink-bright: #f2f4f0;  /* name / display headings */
+  --ink-dim: #a8b0ac;     /* secondary text */
+  --mist: #8a938f;        /* muted / data / fog */
+  --jade: #8fb6a3;        /* muted structural accent */
+  --water: #86b0b2;       /* links / taglines (cool teal) */
+  --forest: #33413a;      /* deep accent fills */
+  --glow: #e3a866;        /* warm amber light — RARE (lantern, hover/active, map home) */
+  --card-bg: rgba(143, 182, 163, 0.06);
+  --grid: rgba(143, 182, 163, 0.05);
+  --grid-major: rgba(143, 182, 163, 0.09);
+  --serif: "Cormorant Garamond", Georgia, serif;   /* display */
+  --serif-text: "Spectral", Georgia, serif;         /* prose */
+  /* time-of-day grade over the hero scene (default = night; dawn/dusk below) */
+  --grade-top: rgba(24, 30, 32, 0.34);
+  --grade-bot: rgba(12, 16, 17, 0.88);
+  --warm: rgba(227, 168, 102, 0);
 }
-
-/* night watch — dark mode */
-html[data-watch="night"] {
-  --red: #e05577;
-  --blue: #5fb0d5;
-  --ink: #e8dcd2;
-  --paper: #14100e;
-  --dash: #56493f;
-  --grid: rgba(224, 85, 119, 0.05);
-  --grid-major: rgba(224, 85, 119, 0.10);
-  --card-bg: rgba(224, 85, 119, 0.05);
+/* dawn — pale, cool, foggy morning */
+html[data-tod="dawn"] {
+  --grade-top: rgba(150, 165, 172, 0.12);
+  --grade-bot: rgba(28, 38, 42, 0.74);
+  --warm: rgba(206, 188, 156, 0.05);
+}
+/* dusk — the warm-window hour */
+html[data-tod="dusk"] {
+  --grade-top: rgba(64, 46, 38, 0.22);
+  --grade-bot: rgba(18, 15, 15, 0.84);
+  --warm: rgba(227, 150, 92, 0.13);
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 
 html, body {
-  background: var(--paper);
+  background: var(--stone);
   color: var(--ink);
   font-family: "Maple Mono", "Courier New", monospace;
   font-size: 12.5px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
-  transition: background 0.5s, color 0.5s;
+}
+body {
+  min-height: 100vh;
+  background: var(--stone);
 }
 
-::selection { background: var(--red); color: var(--paper); }
+::selection { background: var(--jade); color: var(--deep); }
 
-/* ================= graticule ================= */
-body::before {
-  content: "";
+/* ================= the scene (fixed layers behind everything) ================= *
+ * back → front: hero photo · dark-gray grade · drifting mist · rain ·
+ * cursor lantern · grain. none take pointer events. mist/rain/grain gated
+ * by the [mist] toggle; the photo + grade + lantern always remain. */
+
+/* hero photograph (user-supplied images/hero.jpg) with a graphite fallback */
+.hero-bg {
   position: fixed;
   inset: 0;
-  pointer-events: none;
   z-index: 0;
+  pointer-events: none;
+  background-color: var(--deep);
+  /* drop your photo at images/hero.webp (or .jpg / .png). whichever exists wins;
+     if none is present the graphite gradient below shows as a graceful fallback. */
   background-image:
-    linear-gradient(var(--grid) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid) 1px, transparent 1px),
-    linear-gradient(var(--grid-major) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-major) 1px, transparent 1px);
-  background-size: 32px 32px, 32px 32px, 160px 160px, 160px 160px;
+    url("/images/hero.webp"),
+    url("/images/hero.jpg"),
+    url("/images/hero.png"),
+    linear-gradient(180deg, #2c3335 0%, #212829 46%, #161a1b 100%);
+  background-size: cover, cover, cover, cover;
+  background-position: center 32%, center 32%, center 32%, center;
+  background-repeat: no-repeat;
 }
 
-/* ================= edge rulers ================= */
-.ruler {
+/* dark-gray grade + time-of-day tint that unifies any photo into the palette */
+.scene-grade {
   position: fixed;
-  z-index: 50;
-  background: var(--paper);
-  transition: background 0.5s;
-}
-.ruler-top {
-  top: 0; left: 0; right: 0;
-  height: 15px;
-  border-bottom: 1px solid var(--ink);
-  background-image:
-    repeating-linear-gradient(90deg, var(--dash) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(90deg, var(--ink) 0 1px, transparent 1px 80px);
-  background-size: 100% 5px, 100% 11px;
-  background-position: bottom left, bottom left;
-  background-repeat: repeat-x;
-}
-.ruler-left {
-  top: 0; bottom: 0; left: 0;
-  width: 15px;
-  border-right: 1px solid var(--ink);
-  background-image:
-    repeating-linear-gradient(0deg, var(--dash) 0 1px, transparent 1px 8px),
-    repeating-linear-gradient(0deg, var(--ink) 0 1px, transparent 1px 80px);
-  background-size: 5px 100%, 11px 100%;
-  background-position: right top, right top;
-  background-repeat: repeat-y;
-}
-.ruler-corner {
-  top: 0; left: 0;
-  width: 15px; height: 15px;
-  border-right: 1px solid var(--ink);
-  border-bottom: 1px solid var(--ink);
-  z-index: 51;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(70% 48% at 50% 24%, var(--warm), transparent 72%),
+    linear-gradient(180deg, var(--grade-top) 0%, transparent 34%, var(--grade-bot) 100%);
+  transition: background 0.8s ease;
 }
 
-/* red position marker riding the left ruler as you scroll */
+/* drifting mist — emphasised: several soft, slow, layered fog banks */
+.mist {
+  position: fixed;
+  inset: -25% -15%;
+  z-index: 0;
+  pointer-events: none;
+  will-change: transform;
+}
+.mist-far {
+  background:
+    radial-gradient(60% 42% at 20% 34%, rgba(176, 190, 188, 0.10), transparent 68%),
+    radial-gradient(56% 40% at 82% 52%, rgba(150, 168, 166, 0.09), transparent 70%);
+  animation: drift-far 58s ease-in-out infinite alternate;
+}
+.mist-near {
+  background:
+    radial-gradient(50% 34% at 66% 26%, rgba(196, 208, 205, 0.09), transparent 66%),
+    radial-gradient(60% 40% at 28% 66%, rgba(168, 184, 181, 0.11), transparent 70%);
+  animation: drift-near 42s ease-in-out infinite alternate;
+}
+.mist-low {
+  background:
+    linear-gradient(0deg, rgba(188, 200, 198, 0.12) 0%, rgba(180, 194, 191, 0.05) 22%, transparent 46%),
+    radial-gradient(80% 34% at 50% 100%, rgba(200, 212, 210, 0.10), transparent 70%);
+  animation: drift-low 34s ease-in-out infinite alternate;
+}
+@keyframes drift-far {
+  from { transform: translate3d(-4%, 1%, 0) scale(1.06); }
+  to   { transform: translate3d(5%, -2%, 0) scale(1.14); }
+}
+@keyframes drift-near {
+  from { transform: translate3d(4%, -1%, 0) scale(1.10); }
+  to   { transform: translate3d(-5%, 2%, 0) scale(1.03); }
+}
+@keyframes drift-low {
+  from { transform: translate3d(-3%, 0, 0); }
+  to   { transform: translate3d(4%, 0, 0); }
+}
+
+#rain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+/* cursor lantern — the one warm light, moved by the pointer (JS sets --lx/--ly) */
+.lantern {
+  position: fixed;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(240px 240px at var(--lx, 50%) var(--ly, 26%),
+    rgba(231, 176, 112, 0.12), rgba(231, 176, 112, 0.04) 46%, transparent 68%);
+  mix-blend-mode: screen;
+}
+
+/* faint cinematic film grain (inline SVG turbulence, CSP-safe) */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 140px 140px;
+}
+
+/* the [mist] toggle stills the weather (photo, grade & lantern stay) */
+html[data-mist="off"] #rain,
+html[data-mist="off"] .mist,
+html[data-mist="off"] .grain { display: none; }
+
+/* minimal scroll-progress tick on the left edge */
 #lat-marker {
   position: fixed;
   left: 0;
   top: 0;
   z-index: 52;
-  width: 15px;
-  text-align: right;
-  color: var(--red);
-  font-size: 10px;
-  line-height: 10px;
+  width: 2px;
+  height: 34px;
+  background: linear-gradient(var(--jade), transparent);
+  opacity: 0.7;
   pointer-events: none;
   transition: top 0.1s linear;
 }
 
-/* crop marks, like a printed sheet */
-.crop {
+/* ================= fixed top bar ================= */
+.topbar {
   position: fixed;
-  width: 14px; height: 14px;
-  z-index: 49;
-  pointer-events: none;
-}
-.crop-tr { top: 24px; right: 10px; border-top: 1px solid var(--dash); border-right: 1px solid var(--dash); }
-.crop-br { bottom: 40px; right: 10px; border-bottom: 1px solid var(--dash); border-right: 1px solid var(--dash); }
-
-/* ================= page column ================= */
-main {
-  position: relative;
-  z-index: 1;
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 56px 28px 120px 40px;
-}
-
-/* ================= cartouche ================= */
-.cartouche {
-  border: 1px solid var(--ink);
-  outline: 1px solid var(--ink);
-  outline-offset: 3px;
-  padding: 30px 26px 24px;
-  text-align: center;
-  margin: 8px 4px 44px;
-  position: relative;
-  background: var(--paper);
-  transition: background 0.5s;
-}
-.cartouche::before, .cartouche::after {
-  content: "✦";
-  position: absolute;
-  top: -9px;
-  color: var(--red);
-  background: var(--paper);
-  padding: 0 6px;
-  font-size: 11px;
-  transition: background 0.5s;
-}
-.cartouche::before { left: 22px; }
-.cartouche::after { right: 22px; }
-
-.chart-no {
-  text-transform: uppercase;
-  letter-spacing: 4px;
-  font-size: 10px;
-  color: var(--dash);
-}
-.chart-title {
-  font-family: var(--serif);
-  font-size: 44px;
-  line-height: 1.1;
-  font-weight: 400;
-  color: var(--red);
-  margin: 10px 0 2px;
-}
-.chart-sub {
-  font-family: var(--serif);
-  font-style: italic;
-  font-size: 16px;
-  color: var(--blue);
-  margin-bottom: 14px;
-}
-.chart-coords {
-  font-size: 11px;
-  letter-spacing: 1px;
-  color: var(--ink);
-  margin-bottom: 4px;
-}
-.chart-coords b { color: var(--red); font-weight: normal; }
-.chart-links {
-  margin-top: 12px;
-  font-size: 11.5px;
-  letter-spacing: 1px;
-}
-.chart-links a, .chart-links button { margin: 0 8px; }
-
-/* converging routes drawing */
-#routes { display: block; margin: 14px auto 2px; overflow: visible; }
-#routes .course {
-  fill: none;
-  stroke: var(--blue);
-  stroke-width: 1.2;
-  stroke-dasharray: 4 4;
-  stroke-dashoffset: 240;
-  animation: sail 2.4s ease forwards 0.4s;
-}
-#routes .course:nth-of-type(2) { animation-delay: 0.7s; }
-#routes .course:nth-of-type(3) { animation-delay: 1.0s; }
-@keyframes sail { to { stroke-dashoffset: 0; } }
-#routes .port { fill: var(--paper); stroke: var(--ink); stroke-width: 1; }
-#routes .here { fill: var(--red); }
-#routes text {
-  font-family: "Maple Mono", monospace;
-  font-size: 9px;
-  fill: var(--dash);
-  text-transform: lowercase;
-}
-#routes .here-label { fill: var(--red); }
-
-/* scale bar — also used as the section divider */
-.scalebar {
+  top: 0; left: 0; right: 0;
+  z-index: 80;
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0;
-  margin: 40px auto;
-  user-select: none;
-}
-.scalebar i {
-  width: 42px; height: 6px;
-  border: 1px solid var(--ink);
-  border-right: none;
-}
-.scalebar i:nth-child(odd) { background: var(--ink); }
-.scalebar i:last-of-type { border-right: 1px solid var(--ink); }
-.scalebar em {
-  font-style: normal;
-  font-size: 10px;
-  color: var(--dash);
-  margin-left: 12px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 15px 24px;
+  font-family: "Maple Mono", "Courier New", monospace;
+  font-size: 11px;
   letter-spacing: 1px;
+  color: var(--ink-dim);
+  background: linear-gradient(180deg, rgba(12, 15, 16, 0.55), transparent);
+  pointer-events: none;   /* let the hero breathe; re-enable on the controls */
 }
-.cartouche .scalebar { margin: 18px auto 0; }
+.topbar a, .topbar button, .topbar .tod { pointer-events: auto; }
+.brand {
+  color: var(--ink-bright);
+  text-transform: lowercase;
+  letter-spacing: 3px;
+  border-bottom: none;
+}
+.brand:hover { color: var(--jade); border-bottom: none; }
+.topnav { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; justify-content: flex-end; }
+.topnav a, .topnav button.text-control {
+  color: var(--ink-dim);
+  text-transform: lowercase;
+  letter-spacing: 1px;
+  border-bottom: none;
+}
+.topnav a:hover, .topnav button.text-control:hover { color: var(--glow); border-bottom: none; }
+.tod {
+  display: inline-flex;
+  gap: 10px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.14);
+}
+.tod-btn { color: var(--ink-dim); border-bottom: none; }
+.tod-btn:hover { color: var(--glow); border-bottom: none; }
+.tod-btn.on { color: var(--jade); }
+
+/* ================= cinematic hero ================= */
+.hero {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 96px 24px 90px;
+}
+.hero-inner { max-width: 960px; }
+.hero .chart-no {
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  font-size: 11px;
+  color: var(--jade);
+  font-family: "Maple Mono", monospace;
+  margin-bottom: 20px;
+}
+.hero .chart-title {
+  font-family: var(--serif);
+  font-weight: 500;
+  font-size: clamp(58px, 13vw, 150px);
+  line-height: 0.9;
+  letter-spacing: 1px;
+  color: var(--ink-bright);
+  margin: 0 0 20px;
+  text-shadow: 0 2px 40px rgba(0, 0, 0, 0.55);
+}
+.hero .chart-title span { display: block; }
+.hero .chart-sub {
+  font-family: var(--serif-text);
+  font-style: italic;
+  font-size: clamp(16px, 2.4vw, 23px);
+  color: var(--ink);
+  opacity: 0.92;
+  margin-bottom: 16px;
+  text-shadow: 0 1px 20px rgba(0, 0, 0, 0.5);
+}
+.hero .chart-coords {
+  font-family: "Maple Mono", monospace;
+  font-size: 11px;
+  letter-spacing: 2px;
+  color: var(--mist);
+  text-transform: lowercase;
+}
+.hero .chart-coords b { color: var(--jade); font-weight: normal; }
+.scroll-cue {
+  position: absolute;
+  bottom: 26px; left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  color: var(--ink-dim);
+  border-bottom: none;
+  text-transform: lowercase;
+  letter-spacing: 3px;
+  font-size: 10px;
+  font-family: "Maple Mono", monospace;
+}
+.scroll-cue:hover { color: var(--jade); border-bottom: none; }
+.cue-arrow { font-size: 16px; animation: cue-bob 2.2s ease-in-out infinite; }
+@keyframes cue-bob {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50%      { transform: translateY(6px); opacity: 1; }
+}
+
+/* ================= content sheet + column ================= */
+main#main {
+  position: relative;
+  z-index: 1;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--stone) 80%, transparent) 0, var(--stone) 200px);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 -30px 70px rgba(0, 0, 0, 0.5);
+}
+.column {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 76px 28px 130px 40px;
+}
+
+/* section divider — a thin misted rule with a jade node */
+.divider {
+  position: relative;
+  height: 1px;
+  margin: 48px auto;
+  width: 100%;
+  max-width: 340px;
+  background: linear-gradient(90deg, transparent, var(--mist), transparent);
+  opacity: 0.5;
+}
+.divider::after {
+  content: "";
+  position: absolute;
+  left: 50%; top: 50%;
+  width: 5px; height: 5px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--jade);
+}
 
 /* ================= plates (sections) ================= */
 .plate {
@@ -248,14 +342,14 @@ main {
 }
 .plate-label {
   text-align: right;
-  border-right: 2px solid var(--red);
+  border-right: 2px solid var(--jade);
   padding-right: 14px;
 }
 .plate-label .num {
   display: block;
   font-family: var(--serif);
   font-size: 26px;
-  color: var(--red);
+  color: var(--jade);
   line-height: 1;
 }
 .plate-label .cap {
@@ -269,7 +363,7 @@ main {
 .plate-label .obs {
   display: block;
   font-size: 9.5px;
-  color: var(--dash);
+  color: var(--mist);
   margin-top: 4px;
   font-style: italic;
   font-family: var(--serif);
@@ -287,24 +381,24 @@ main {
 .js-ready .reveal.in { opacity: 1; transform: none; }
 
 a {
-  color: var(--blue);
+  color: var(--water);
   text-decoration: none;
-  border-bottom: 1px dotted var(--blue);
+  border-bottom: 1px dotted var(--water);
   transition: color 0.15s, border-color 0.15s;
 }
-a:hover { color: var(--red); border-bottom-color: var(--red); }
+a:hover { color: var(--jade); border-bottom-color: var(--jade); }
 button.text-control {
   appearance: none;
   background: none;
   border: 0;
-  border-bottom: 1px dotted var(--blue);
-  color: var(--blue);
+  border-bottom: 1px dotted var(--water);
+  color: var(--water);
   cursor: pointer;
   font: inherit;
   padding: 0;
   transition: color 0.15s, border-color 0.15s;
 }
-button.text-control:hover { color: var(--red); border-bottom-color: var(--red); }
+button.text-control:hover { color: var(--jade); border-bottom-color: var(--jade); }
 
 /* ================= soundings (entry rows) ================= */
 details.fix { margin: 2px 0; }
@@ -318,14 +412,14 @@ details.fix summary {
 }
 details.fix summary::-webkit-details-marker { display: none; }
 details.fix summary .mark {
-  color: var(--red);
+  color: var(--jade);
   flex: 0 0 auto;
   transition: transform 0.3s ease;
   display: inline-block;
 }
 details.fix[open] summary .mark { transform: rotate(90deg); }
 details.fix summary .idx {
-  color: var(--dash);
+  color: var(--mist);
   font-size: 10px;
   flex: 0 0 auto;
 }
@@ -333,16 +427,16 @@ details.fix summary .nm {
   flex: 0 0 auto;
   text-transform: lowercase;
 }
-details.fix summary:hover .nm { color: var(--blue); }
+details.fix summary:hover .nm { color: var(--water); }
 details.fix summary .leader {
   flex: 1 1 auto;
-  border-bottom: 1px dotted var(--dash);
+  border-bottom: 1px dotted var(--mist);
   transform: translateY(-3px);
   min-width: 16px;
 }
 details.fix summary .dt {
   flex: 0 0 auto;
-  color: var(--dash);
+  color: var(--mist);
   font-size: 10.5px;
   text-transform: lowercase;
 }
@@ -352,7 +446,7 @@ details.fix summary .ext {
 }
 
 .log {
-  border-left: 2px solid var(--red);
+  border-left: 2px solid var(--jade);
   background: var(--card-bg);
   margin: 6px 0 12px 18px;
   padding: 10px 14px;
@@ -365,17 +459,17 @@ details.fix summary .ext {
 }
 .log .stamp {
   font-size: 10px;
-  color: var(--dash);
+  color: var(--mist);
   letter-spacing: 1px;
   text-transform: uppercase;
   margin-bottom: 6px;
 }
 .log ul { list-style: none; }
 .log li { margin: 3px 0; padding-left: 14px; text-indent: -14px; }
-.log li::before { content: "▸ "; color: var(--red); font-size: 9px; }
+.log li::before { content: "▸ "; color: var(--jade); font-size: 9px; }
 
 .plainrow { margin: 4px 0; text-transform: lowercase; }
-.plainrow .idx { color: var(--dash); font-size: 10px; margin-right: 8px; }
+.plainrow .idx { color: var(--mist); font-size: 10px; margin-right: 8px; }
 
 /* ================= travel chart (plate vi) ================= */
 .log.travel-log { max-width: none; }
@@ -388,12 +482,12 @@ details.fix summary .ext {
 }
 .travel-toggle { letter-spacing: 0; text-transform: lowercase; }
 .travel-toggle button {
-  color: var(--dash);
+  color: var(--mist);
   border-bottom: none;
   margin-left: 8px;
 }
 .travel-toggle button:hover { color: var(--ink); }
-.travel-toggle button.on { color: var(--red); }
+.travel-toggle button.on { color: var(--jade); }
 .travel-toggle button { touch-action: manipulation; }
 
 .travelmap {
@@ -408,7 +502,7 @@ details.fix summary .ext {
 .travelmap .terr {
   cursor: default;
   fill: none;
-  stroke: var(--dash);
+  stroke: var(--mist);
   stroke-width: 0.6;
   transition: fill 0.2s, stroke 0.2s;
   /* hit-test the whole territory, not just its hairline stroke —
@@ -418,23 +512,23 @@ details.fix summary .ext {
   vector-effect: non-scaling-stroke;
 }
 .travelmap .terr.visited {
-  fill: color-mix(in srgb, var(--red) 78%, var(--paper));
-  stroke: var(--red);
+  fill: color-mix(in srgb, var(--jade) 78%, var(--stone));
+  stroke: var(--jade);
 }
 .travelmap .terr:hover {
-  fill: color-mix(in srgb, var(--blue) 30%, transparent);
-  stroke: var(--blue);
+  fill: color-mix(in srgb, var(--water) 30%, transparent);
+  stroke: var(--water);
 }
 .travelmap .terr.visited:hover {
-  fill: var(--red);
-  stroke: var(--red);
+  fill: var(--jade);
+  stroke: var(--jade);
 }
 #map-tip {
   position: absolute;
   display: none;
   pointer-events: none;
-  background: var(--paper);
-  border-left: 2px solid var(--red);
+  background: var(--stone);
+  border-left: 2px solid var(--jade);
   padding: 2px 8px;
   font-size: 10.5px;
   letter-spacing: 1px;
@@ -443,9 +537,9 @@ details.fix summary .ext {
   z-index: 5;
   box-shadow: 0 1px 4px rgba(26,26,26,0.15);
 }
-#map-tip .yes { color: var(--red); }
-#map-tip .no { color: var(--dash); }
-#map-tip .plan { color: var(--blue); }
+#map-tip .yes { color: var(--jade); }
+#map-tip .no { color: var(--mist); }
+#map-tip .plan { color: var(--water); }
 
 /* zoom / pan controls */
 .map-ctl {
@@ -457,8 +551,8 @@ details.fix summary .ext {
   z-index: 6;
 }
 .map-ctl button {
-  background: var(--paper);
-  border: 1px solid var(--dash);
+  background: var(--stone);
+  border: 1px solid var(--mist);
   width: 22px; height: 22px;
   line-height: 20px;
   text-align: center;
@@ -467,7 +561,7 @@ details.fix summary .ext {
   user-select: none;
 }
 .travelmap svg[hidden] { display: none; }
-.map-ctl button:hover { border-color: var(--red); color: var(--red); background: var(--paper); }
+.map-ctl button:hover { border-color: var(--jade); color: var(--jade); background: var(--stone); }
 .travelmap svg.zoomed { touch-action: none; cursor: grab; }
 .travelmap svg.panning { cursor: grabbing; }
 
@@ -475,24 +569,23 @@ details.fix summary .ext {
 .travelmap .terr.noted { cursor: pointer; }
 .travelmap .terr.planned {
   fill: var(--planned-fill);
-  stroke: var(--blue);
+  stroke: var(--water);
   stroke-dasharray: 3 2;
 }
-.travelmap .terr.planned:hover { fill: color-mix(in srgb, var(--blue) 30%, transparent); }
+.travelmap .terr.planned:hover { fill: color-mix(in srgb, var(--water) 30%, transparent); }
 .travelmap .terr.flash { animation: terrflash 0.5s ease 4; }
 @keyframes terrflash {
-  50% { fill: var(--blue); stroke: var(--blue); }
+  50% { fill: var(--water); stroke: var(--water); }
 }
 
-/* home port: star */
+/* home marker: star */
 .travelmap .home-mark { pointer-events: none; }
 .travelmap .home-mark .star {
-  fill: var(--red);
-  stroke: #C9A227;
-  stroke-width: 1.6;
+  fill: var(--jade);
+  stroke: var(--ink-bright);
+  stroke-width: 1.4;
   stroke-linejoin: round;
 }
-html[data-watch="night"] .travelmap .home-mark .star { stroke: #E5C558; }
 
 /* field note card (click a charted territory) */
 .field-note { margin: 10px 0 2px; }
@@ -501,7 +594,7 @@ html[data-watch="night"] .travelmap .home-mark .star { stroke: #E5C558; }
   justify-content: space-between;
   gap: 8px;
 }
-.field-note .stamp button { border-bottom: none; color: var(--dash); }
+.field-note .stamp button { border-bottom: none; color: var(--mist); }
 .field-note .stamp button:hover { color: var(--ink); }
 .field-note p { margin: 0; }
 
@@ -515,37 +608,38 @@ html[data-watch="night"] .travelmap .home-mark .star { stroke: #E5C558; }
   padding: 2px 0;
 }
 .lb-row .dot { font-size: 8px; }
-.lb-row .dot.c { color: var(--red); }
+.lb-row .dot.c { color: var(--jade); }
 .lb-row .leader {
   flex: 1 1 auto;
-  border-bottom: 1px dotted var(--dash);
+  border-bottom: 1px dotted var(--mist);
   transform: translateY(-3px);
   min-width: 16px;
 }
-.lb-row .yr { color: var(--dash); font-size: 10.5px; }
+.lb-row .yr { color: var(--mist); font-size: 10.5px; }
 
 /* ================= legend / footer ================= */
 .legend {
-  border: 1px solid var(--ink);
-  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--mist) 34%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--stone-2) 60%, transparent);
+  padding: 18px 22px;
   margin-top: 56px;
   position: relative;
 }
 .legend .legend-cap {
   position: absolute;
   top: -8px; left: 16px;
-  background: var(--paper);
+  background: var(--stone);
   padding: 0 8px;
   text-transform: uppercase;
   letter-spacing: 3px;
   font-size: 10px;
-  color: var(--red);
-  transition: background 0.5s;
+  color: var(--jade);
 }
 .legend table { border-collapse: collapse; width: 100%; }
 .legend td { padding: 3px 6px; font-size: 11.5px; }
-.legend td.sym { color: var(--red); width: 30px; text-align: center; }
-.legend td.what { color: var(--dash); width: 40%; }
+.legend td.sym { color: var(--jade); width: 30px; text-align: center; }
+.legend td.what { color: var(--mist); width: 40%; }
 
 .colophon {
   text-align: center;
@@ -553,9 +647,9 @@ html[data-watch="night"] .travelmap .home-mark .star { stroke: #E5C558; }
   font-family: var(--serif);
   font-style: italic;
   font-size: 13px;
-  color: var(--dash);
+  color: var(--mist);
 }
-.colophon .flourish { color: var(--red); font-style: normal; }
+.colophon .flourish { color: var(--jade); font-style: normal; }
 
 /* ================= compass rose ================= */
 #compass {
@@ -566,90 +660,111 @@ html[data-watch="night"] .travelmap .home-mark .star { stroke: #E5C558; }
   opacity: 0.9;
   pointer-events: none;
 }
-#compass circle, #compass line { stroke: var(--dash); fill: none; }
+#compass circle, #compass line { stroke: color-mix(in srgb, var(--mist) 70%, transparent); fill: none; }
 #compass text {
   font-family: "Maple Mono", monospace;
   font-size: 8px;
-  fill: var(--dash);
+  fill: var(--mist);
 }
-#compass text.north { fill: var(--red); }
+#compass text.north { fill: var(--jade); }
 #wind-ring {
   transform-box: view-box;
   transform-origin: 45px 45px;
   transition: transform 1.4s cubic-bezier(.2,.7,.2,1), opacity 0.5s;
 }
 #wind-ring .wind-orbit {
-  stroke: var(--blue);
+  stroke: var(--water);
   stroke-width: 0.7;
   stroke-dasharray: 1.5 4;
   opacity: 0.65;
 }
 #wind-ring .wind-arrow {
-  fill: var(--blue);
+  fill: var(--water);
   stroke: none;
 }
-html[data-watch="night"] #wind-ring .wind-orbit { stroke: var(--red); }
-html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
 /* rotation is driven every frame by a JS spring (see script), not CSS,
    so it can overshoot and settle like a real pendulum */
 #needle { transform-origin: 45px 45px; }
-#needle .n-half { fill: var(--red); }
-#needle .s-half { fill: var(--paper); stroke: var(--ink); stroke-width: 0.6; }
+#needle .n-half { fill: var(--jade); }
+#needle .s-half { fill: var(--stone); stroke: var(--ink); stroke-width: 0.6; }
 
 /* ================= status bar ================= */
 #statusbar {
   position: fixed;
   left: 0; right: 0; bottom: 0;
   z-index: 70;
-  background: var(--paper);
-  border-top: 1px solid var(--ink);
+  background: color-mix(in srgb, var(--stone) 82%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-top: 1px solid color-mix(in srgb, var(--mist) 28%, transparent);
   display: flex;
   justify-content: space-between;
   gap: 10px;
   padding: 5px 14px 5px 22px;
   font-size: 10.5px;
   letter-spacing: 1px;
-  color: var(--dash);
-  transition: background 0.5s;
+  color: var(--mist);
 }
-#statusbar .pos b { color: var(--blue); font-weight: normal; }
-#statusbar .mid { color: var(--dash); }
-#statusbar .tick { color: var(--red); }
+#statusbar .pos b { color: var(--water); font-weight: normal; }
+#statusbar .mid { color: var(--mist); }
+#statusbar .tick { color: var(--jade); }
 
-/* ================= sextant inset ================= */
+/* ================= rain inset ================= */
 .overlay {
   display: none;
   position: fixed;
   inset: 0;
-  background: rgba(26,26,26,0.5);
+  background: rgba(6, 9, 10, 0.62);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
   z-index: 300;
   align-items: center;
   justify-content: center;
 }
 .overlay.open { display: flex; }
 .inset {
-  background: var(--paper);
-  border: 1px solid var(--ink);
-  outline: 1px solid var(--ink);
-  outline-offset: 3px;
-  padding: 22px 26px;
+  background: var(--stone-2);
+  border: 1px solid color-mix(in srgb, var(--mist) 34%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  padding: 26px 28px 22px;
   max-width: 340px;
   width: 90%;
   text-align: center;
 }
 .inset .inset-cap {
   font-family: var(--serif);
-  font-size: 22px;
-  color: var(--red);
+  font-size: 26px;
+  color: var(--ink-bright);
 }
 .inset .inset-sub {
   font-family: var(--serif);
   font-style: italic;
-  color: var(--dash);
-  margin-bottom: 10px;
+  color: var(--mist);
+  margin-bottom: 14px;
 }
-.inset img { max-width: 60%; }
-.inset .close { color: var(--dash); margin-top: 12px; cursor: pointer; font-size: 10.5px; }
+.inset .rain-art { max-width: 60%; height: auto; margin: 4px auto 2px; display: block; }
+.inset .rain-art .cloud {
+  fill: color-mix(in srgb, var(--mist) 24%, transparent);
+  stroke: var(--mist);
+  stroke-width: 1.4;
+}
+.inset .rain-art .drop {
+  stroke: var(--water);
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  animation: fall-drop 1.1s linear infinite;
+}
+.inset .rain-art .drop:nth-child(3) { animation-delay: 0.35s; }
+.inset .rain-art .drop:nth-child(4) { animation-delay: 0.7s; }
+.inset .rain-art .drop:nth-child(5) { animation-delay: 0.15s; }
+.inset .rain-art .drop:nth-child(6) { animation-delay: 0.55s; }
+@keyframes fall-drop {
+  0%   { opacity: 0; transform: translateY(-6px); }
+  30%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(10px); }
+}
+.inset .close { color: var(--mist); margin-top: 14px; cursor: pointer; font-size: 10.5px; }
 .inset .close:hover { color: var(--ink); }
 
 /* copied toast */
@@ -658,10 +773,12 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
   bottom: 44px;
   left: 50%;
   transform: translate(-50%, 8px);
-  background: var(--paper);
-  border: 1px solid var(--red);
-  color: var(--red);
-  padding: 4px 14px;
+  background: var(--stone-2);
+  border: 1px solid color-mix(in srgb, var(--jade) 55%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  color: var(--jade);
+  padding: 5px 15px;
   font-size: 11px;
   letter-spacing: 1px;
   z-index: 310;
@@ -676,8 +793,8 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
   position: fixed;
   top: 8px; left: 20px;
   z-index: 400;
-  background: var(--red);
-  color: var(--paper);
+  background: var(--jade);
+  color: var(--stone);
   padding: 6px 14px;
   font-size: 11px;
   letter-spacing: 1px;
@@ -687,7 +804,7 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
 }
 .skip-link:focus { transform: translateY(0); outline: none; }
 :focus-visible {
-  outline: 2px solid var(--blue);
+  outline: 2px solid var(--water);
   outline-offset: 2px;
 }
 /* view-transition morph on the countries/states swap */
@@ -696,24 +813,25 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
 /* ================= command palette (ship's helm) ================= */
 #helm-overlay { align-items: flex-start; }
 #helm {
-  background: var(--paper);
-  border: 1px solid var(--ink);
-  outline: 1px solid var(--ink);
-  outline-offset: 3px;
+  background: var(--stone-2);
+  border: 1px solid color-mix(in srgb, var(--mist) 34%, transparent);
+  border-radius: 12px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   margin-top: 12vh;
   width: 92%;
   max-width: 400px;
   text-align: left;
   text-transform: lowercase;
+  overflow: hidden;
 }
 #helm-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  border-bottom: 1px solid var(--dash);
+  border-bottom: 1px solid color-mix(in srgb, var(--mist) 24%, transparent);
   padding: 12px 16px;
 }
-#helm-head .prompt { color: var(--red); }
+#helm-head .prompt { color: var(--jade); }
 #helm-input {
   background: none;
   border: none;
@@ -732,34 +850,38 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
   padding: 5px 16px;
   cursor: pointer;
 }
-.helm-cmd .kind { color: var(--dash); font-size: 9.5px; letter-spacing: 1px; }
+.helm-cmd .kind { color: var(--mist); font-size: 9.5px; letter-spacing: 1px; }
 .helm-cmd.sel { background: var(--card-bg); }
-.helm-cmd.sel .cname { color: var(--red); }
+.helm-cmd.sel .cname { color: var(--jade); }
 .helm-cmd.sel .cname::before { content: "▸ "; }
-#helm-empty { color: var(--dash); padding: 6px 16px; display: none; }
+#helm-empty { color: var(--mist); padding: 6px 16px; display: none; }
 #helm-hint {
-  border-top: 1px solid var(--dash);
+  border-top: 1px solid color-mix(in srgb, var(--mist) 24%, transparent);
   padding: 7px 16px;
-  color: var(--dash);
+  color: var(--mist);
   font-size: 9.5px;
   letter-spacing: 1px;
 }
 
 /* ================= digital passages (github) ================= */
 #gh-rows .lb-row .yr { min-width: 0; }
-#gh-status { color: var(--dash); }
+#gh-status { color: var(--mist); }
 #gh-rows a { border-bottom: none; }
 
 /* ================= responsive ================= */
 @media (max-width: 640px) {
-  .ruler, .crop, #lat-marker, #compass { display: none; }
-  main { padding: 28px 16px 90px; }
-  .chart-title { font-size: 32px; }
+  #lat-marker, #compass { display: none; }
+  .column { padding: 48px 18px 90px; }
+  .topbar { padding: 12px 16px; font-size: 10px; gap: 8px; }
+  .topnav { gap: 12px; }
+  .tod { gap: 8px; padding-left: 10px; }
+  .hero { padding: 84px 20px 80px; }
+  .hero .chart-no { letter-spacing: 4px; margin-bottom: 14px; }
   .plate { grid-template-columns: 1fr; gap: 8px; }
   .plate-label {
     text-align: left;
     border-right: none;
-    border-bottom: 1px solid var(--red);
+    border-bottom: 1px solid var(--jade);
     padding: 0 0 6px;
     display: flex;
     align-items: baseline;
@@ -776,23 +898,26 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
     transition-duration: 0.01ms !important;
   }
   .reveal { opacity: 1; transform: none; }
-  #routes .course { stroke-dashoffset: 0; }
+  .mist { animation: none !important; }
+  .cue-arrow { animation: none !important; }
 }
 
-/* ================= print: the chart on actual paper ================= */
+/* ================= print: legible ink on white paper ================= */
 @media print {
   @page { margin: 14mm; }
-  /* force day-watch inks and actually print them (browsers drop
+  /* force dark inks on white and actually print them (browsers drop
      backgrounds/colours by default — this is what made prints look blank) */
-  html, html[data-watch="night"] {
-    --red: #A4133C;
-    --blue: #1376A4;
-    --ink: #1A1A1A;
-    --paper: #ffffff;
-    --dash: #8d867a;
+  html {
+    --jade: #1f7a5e;
+    --water: #1c6f8c;
+    --ink: #1a1e20;
+    --ink-bright: #000000;
+    --stone: #ffffff;
+    --stone-2: #ffffff;
+    --mist: #5c6663;
     --grid: transparent;
     --grid-major: transparent;
-    --card-bg: rgba(164,19,60,0.04);
+    --card-bg: rgba(31,122,94,0.05);
   }
   html, body {
     -webkit-print-color-adjust: exact;
@@ -801,11 +926,14 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
     font-size: 11px;
   }
   /* every fixed/floating fixture and interactive-only chrome is dropped */
-  .ruler, .crop, #lat-marker, #compass, #statusbar,
+  .hero-bg, .scene-grade, .mist, .lantern, .grain, #rain,
+  #lat-marker, #compass, #statusbar, .topbar, .scroll-cue,
   #overlay, #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
-  .travel-toggle, #routes { display: none !important; }
-  body::before, body::after { display: none !important; }
-  main { max-width: none !important; padding: 0 !important; margin: 0 !important; }
+  .travel-toggle { display: none !important; }
+  .hero { min-height: 0 !important; padding: 0 0 12mm !important; page-break-after: avoid; }
+  .hero .chart-title { font-size: 34px !important; color: #000 !important; text-shadow: none !important; }
+  main#main { box-shadow: none !important; border-top: none !important; background: #fff !important; }
+  .column { max-width: none !important; padding: 0 !important; margin: 0 !important; }
   /* undo scroll-reveal so nothing is invisible on paper */
   .reveal { opacity: 1 !important; transform: none !important; }
   /* open every collapsible and show its contents */
@@ -814,7 +942,7 @@ html[data-watch="night"] #wind-ring .wind-arrow { fill: var(--red); }
   .field-note { display: block !important; }
   .field-note[hidden] { display: none !important; } /* transient popover stays hidden */
   /* keep blocks whole across page breaks */
-  .cartouche, .plate, .legend, details.fix, .log, .travelmap { break-inside: avoid; }
+  .hero, .plate, .legend, details.fix, .log, .travelmap { break-inside: avoid; }
   a { border-bottom: none !important; color: var(--ink); }
   .travelmap svg { max-height: 420px; }
 }

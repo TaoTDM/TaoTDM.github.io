@@ -1,8 +1,6 @@
-import { copyFile, mkdir } from 'node:fs/promises';
+import { cp, copyFile } from 'node:fs/promises';
 
-await mkdir('dist/images', { recursive: true });
-await Promise.all([
-  copyFile('CNAME', 'dist/CNAME'),
-  copyFile('images/og-preview.png', 'dist/images/og-preview.png'),
-  copyFile('images/og-preview.svg', 'dist/images/og-preview.svg')
-]);
+// copy the whole images/ folder (favicon, og-preview, hero.*, etc.) verbatim,
+// so runtime paths like /images/hero.jpg resolve on GitHub Pages
+await cp('images', 'dist/images', { recursive: true });
+await copyFile('CNAME', 'dist/CNAME');
