@@ -617,18 +617,6 @@ document.documentElement.classList.add('js-ready');
     });
   }
 
-  /* the scroll-progress marker on the left edge. */
-  var latMarker = document.getElementById('lat-marker');
-  function onScroll() {
-    var h = document.documentElement;
-    var max = h.scrollHeight - h.clientHeight;
-    var p = max > 0 ? h.scrollTop / max : 0;
-    latMarker.style.top = (p * (h.clientHeight - 12)) + 'px';
-  }
-  window.addEventListener('scroll', onScroll, { passive: true });
-  window.addEventListener('resize', onScroll);
-  onScroll();
-
   /* only the scene needs the visibility update. the status bar is removed. it
      does not start a clock or get the remote weather. */
   document.addEventListener('visibilitychange', syncSceneWeather);

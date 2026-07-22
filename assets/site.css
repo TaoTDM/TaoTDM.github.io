@@ -295,20 +295,6 @@ html[data-mist="off"] #weather-canvas,
 html[data-mist="off"] .mist,
 html[data-mist="off"] .grain { display: none; }
 
-/* scroll-progress tick, left edge */
-#lat-marker {
-  position: fixed;
-  left: 0;
-  top: 0;
-  z-index: 52;
-  width: 2px;
-  height: 34px;
-  background: linear-gradient(var(--jade), transparent);
-  opacity: 0.7;
-  pointer-events: none;
-  transition: top 0.1s linear;
-}
-
 /* top bar */
 .topbar {
   position: fixed;
@@ -1121,7 +1107,7 @@ details.fix summary .ext {
 
 /* responsive */
 @media (max-width: 640px) {
-  #lat-marker, .spy { display: none; }
+  .spy { display: none; }
   .column { padding: 48px 18px 90px; }
   .topbar { padding: 12px 14px; font-size: 10px; gap: 8px; }
   .topnav { gap: 11px; }
@@ -1185,7 +1171,7 @@ details.fix summary .ext {
   }
   /* remove the atmosphere and the interactive controls. */
   .hero-bg, .scene-grade, .mist, .lantern, .grain, #weather-canvas,
-  #lat-marker, .topbar, .scroll-cue, .spy,
+  .topbar, .scroll-cue, .spy,
   #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
   .travel-toggle, .travelmap, #gh-rows, #digital-fix { display: none !important; }
   /* the hero becomes a compact header. put the name on one line. */
