@@ -1,12 +1,12 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-tod="dawn" data-weather="dew">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>tao</title>
 <meta name="description" content="Shi-Tao Chang's page">
 
-<!-- preview card stuff -->
+<!-- the preview card. -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="Shi-Tao Chang — code, language & rain">
 <meta property="og:description" content="cs / linguistics / geography — research, projects, and undertakings.">
@@ -15,68 +15,80 @@
 <meta property="og:image:height" content="630">
 <meta property="og:url" content="https://taotdm.com/">
 
-<!-- discord embed customization -->
+<!-- the discord embed settings. -->
 <meta name="theme-color" content="#0b100e">
 
-<!-- twitter but i dont even use it -->
+<!-- the twitter card. i do not use twitter. -->
 <meta name="twitter:card" content="summary_large_image">
 
-<link rel="icon" href="images/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="images/favicon.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20260720-4">
+<link rel="stylesheet" href="assets/site.css?v=20260722-5">
 </head>
 <body>
 
   <a class="skip-link" href="#about">skip to contents</a>
 
-  <!-- ============ the cold wet scene, behind everything ============ -->
-  <!-- back → front: hero photo · dark-gray grade · drifting mist · rain · cursor lantern · grain -->
-  <div class="hero-bg" aria-hidden="true"></div>
+  <!-- the background layers, from back to front: photo, grade, atmosphere, weather canvas, lantern, grain. -->
+  <div class="hero-bg is-active" data-scene="dawn" aria-hidden="true"></div>
+  <div class="hero-bg" data-scene="dawn" aria-hidden="true"></div>
   <div class="scene-grade" aria-hidden="true"></div>
   <div class="mist mist-far" aria-hidden="true"></div>
   <div class="mist mist-near" aria-hidden="true"></div>
   <div class="mist mist-low" aria-hidden="true"></div>
-  <canvas id="rain" aria-hidden="true"></canvas>
+  <canvas id="weather-canvas" aria-hidden="true"></canvas>
   <div class="lantern" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
 
   <div id="lat-marker" aria-hidden="true"></div>
 
-  <!-- ============ fixed top bar ============ -->
+  <!-- top bar -->
   <header class="topbar">
     <a class="brand" href="#top">taotdm</a>
     <nav class="topnav" aria-label="primary">
       <a id="email-link">email</a>
       <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank" rel="noreferrer">resume</a>
-      <button class="text-control" id="watch-toggle" type="button" aria-label="toggle mist and rain">mist</button>
-      <span class="tod" role="group" aria-label="time of day">
-        <button class="tod-btn" data-tod="dawn" type="button" aria-label="dawn light">dawn</button>
-        <button class="tod-btn" data-tod="dusk" type="button" aria-label="dusk light">dusk</button>
-        <button class="tod-btn" data-tod="night" type="button" aria-label="night light">night</button>
+      <button class="icon-btn" id="sound-toggle" type="button" aria-label="toggle scene ambience" aria-pressed="false" title="scene ambience — off">🔇</button>
+      <button class="icon-btn" id="watch-toggle" type="button" aria-label="toggle scene weather" aria-pressed="true" title="scene weather on">💧</button>
+      <span class="tod" role="group" aria-label="time of day (scroll or click)" title="scroll to change the light">
+        <span class="tod-slider" aria-hidden="true"></span>
+        <button class="tod-btn" data-tod="dawn" type="button" aria-label="dawn light" title="dawn">🌄</button>
+        <button class="tod-btn" data-tod="dusk" type="button" aria-label="dusk light" title="dusk">🌇</button>
+        <button class="tod-btn" data-tod="night" type="button" aria-label="night" title="night">🌙</button>
       </span>
     </nav>
   </header>
 
-  <!-- ============ cinematic hero ============ -->
+  <!-- hero -->
   <header class="hero" id="top">
     <div class="hero-inner">
       <div class="chart-no">works &amp; undertakings</div>
       <h1 class="chart-title"><span>Shi-Tao</span><span>Chang</span></h1>
       <div class="chart-sub">mapping beyond the treeline</div>
-      <div class="chart-coords">lat <b>30°17′N</b> · lon <b>097°44′W</b> · austin, texas · in the rain</div>
+      <div class="chart-coords">austin, texas · in the <b id="weather-line">morning dew</b></div>
     </div>
-    <a class="scroll-cue" href="#about" aria-label="scroll to contents">
-      <span class="cue-word">enter the mist</span>
+    <a class="scroll-cue" href="#main" aria-label="scroll to contents">
+      <span class="cue-word" id="scene-cue">cross the cloudline</span>
       <span class="cue-arrow">↓</span>
     </a>
   </header>
 
+  <!-- scroll-spy rail -->
+  <nav class="spy" aria-label="sections">
+    <a href="#about" data-spy="about"><i>I</i><span>about</span></a>
+    <a href="#experience" data-spy="experience"><i>II</i><span>experience</span></a>
+    <a href="#projects" data-spy="projects"><i>III</i><span>projects</span></a>
+    <a href="#uni" data-spy="uni"><i>IV</i><span>uni</span></a>
+    <a href="#honors" data-spy="honors"><i>V</i><span>honors</span></a>
+    <a href="#travels" data-spy="travels"><i>VI</i><span>travels</span></a>
+  </nav>
+
   <main id="main">
     <div class="column">
 
-    <!-- ============ i — about ============ -->
+    <!-- about -->
     <section class="plate reveal" id="about">
       <div class="plate-label">
         <span class="num">I</span>
@@ -84,13 +96,13 @@
         <span class="obs">at first light</span>
       </div>
       <div class="plate-body">
-        <p>learning about the world to better read the rain.</p>
+        <p>to read .</p>
         <p>interested in spatial datascience, neuro ai, &amp; human-centered geography.</p>
         <p>currently doing geo ai research @ <a href="https://sites.utexas.edu/gisense/" target="_blank" rel="noreferrer">GISense Lab</a></p>
       </div>
     </section>
 
-    <!-- ============ ii — experience ============ -->
+    <!-- experience -->
     <section class="plate reveal" id="experience">
       <div class="plate-label">
         <span class="num">II</span>
@@ -138,7 +150,7 @@
 
     <div class="divider reveal" aria-hidden="true"></div>
 
-    <!-- ============ iii — projects ============ -->
+    <!-- projects -->
     <section class="plate reveal" id="projects">
       <div class="plate-label">
         <span class="num">III</span>
@@ -242,7 +254,7 @@
 
     <div class="divider reveal" aria-hidden="true"></div>
 
-    <!-- ============ iv — uni ============ -->
+    <!-- uni -->
     <section class="plate reveal" id="uni">
       <div class="plate-label">
         <span class="num">IV</span>
@@ -289,7 +301,7 @@
       </div>
     </section>
 
-    <!-- ============ v — honors ============ -->
+    <!-- honors -->
     <section class="plate reveal" id="honors">
       <div class="plate-label">
         <span class="num">V</span>
@@ -332,7 +344,7 @@
       </div>
     </section>
 
-    <!-- ============ vi — travels ============ -->
+    <!-- travels -->
     <section class="plate reveal" id="travels">
       <div class="plate-label">
         <span class="num">VI</span>
@@ -392,14 +404,13 @@
       </div>
     </section>
 
-    <!-- ============ legend ============ -->
+    <!-- legend -->
     <footer class="legend reveal">
       <div class="legend-cap">Elsewhere</div>
       <table>
         <tr><td class="sym">⛰</td><td><a href="https://github.com/TaoTDM" target="_blank" rel="noreferrer">github</a></td><td class="what">made in mist</td></tr>
         <tr><td class="sym">⧉</td><td><a href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank" rel="noreferrer">linkedin</a></td><td class="what">the marked trail</td></tr>
         <tr><td class="sym">✉</td><td><a id="email-link-2">email</a></td><td class="what">fireside chats</td></tr>
-        <tr><td class="sym">☂</td><td>look up</td><td class="what">type "rain"</td></tr>
       </table>
       <div class="colophon">
         by shi-tao chang · 2026
@@ -409,56 +420,9 @@
     </div><!-- /.column -->
   </main>
 
-  <!-- weather dial -->
-  <svg id="compass" width="90" height="90" viewBox="0 0 90 90" aria-hidden="true">
-    <g id="wind-ring">
-      <circle class="wind-orbit" cx="45" cy="45" r="39"/>
-      <path class="wind-arrow" d="M45,0.8 L48.2,7.2 L45,5.5 L41.8,7.2 Z"/>
-    </g>
-    <circle cx="45" cy="45" r="34" stroke-width="1"/>
-    <circle cx="45" cy="45" r="28" stroke-width="0.5" stroke-dasharray="2 3"/>
-    <line x1="45" y1="8" x2="45" y2="16"/>
-    <line x1="45" y1="74" x2="45" y2="82"/>
-    <line x1="8" y1="45" x2="16" y2="45"/>
-    <line x1="74" y1="45" x2="82" y2="45"/>
-    <text class="north" x="42" y="7">N</text>
-    <text x="42.5" y="89">S</text>
-    <text x="0" y="48">W</text>
-    <text x="85" y="48">E</text>
-    <g id="needle">
-      <polygon class="n-half" points="45,20 49,45 45,45 41,45"/>
-      <polygon class="s-half" points="45,70 49,45 45,45 41,45"/>
-      <circle cx="45" cy="45" r="2.4" fill="var(--jade)" stroke="none"/>
-    </g>
-  </svg>
-
-  <!-- status bar -->
-  <div id="statusbar">
-    <span class="pos">your time <b id="localtime">--:--:--</b></span>
-    <span class="mid" id="conditions">fair weather</span>
-    <span>austin time <span class="tick" id="clock">--:--:--</span></span>
-  </div>
-
-  <!-- rain inset (easter egg) -->
-  <div id="overlay" class="overlay">
-    <div class="inset" id="inset">
-      <div class="inset-cap">Rain</div>
-      <div class="inset-sub">the weather, one way or another</div>
-      <svg class="rain-art" width="150" height="120" viewBox="0 0 150 120" aria-hidden="true">
-        <path class="cloud" d="M40 62 a20 20 0 0 1 4 -39 a26 26 0 0 1 49 6 a18 18 0 0 1 13 33 z"/>
-        <line class="drop" x1="46" y1="72" x2="40" y2="92"/>
-        <line class="drop" x1="62" y1="72" x2="56" y2="98"/>
-        <line class="drop" x1="78" y1="72" x2="72" y2="92"/>
-        <line class="drop" x1="94" y1="72" x2="88" y2="98"/>
-        <line class="drop" x1="110" y1="72" x2="104" y2="92"/>
-      </svg>
-      <div class="close" id="inset-close">[esc or click away to close]</div>
-    </div>
-  </div>
-
   <div id="toast">address copied</div>
 
-  <!-- command palette ( / or ⌘K ) -->
+  <!-- command palette. open it with the / key or cmd+k. -->
   <div id="helm-overlay" class="overlay">
     <div id="helm" role="dialog" aria-label="command palette">
       <div id="helm-head"><span class="prompt">◈</span><input id="helm-input" type="text" placeholder="search…" autocomplete="off" spellcheck="false" aria-label="command palette input"></div>
@@ -468,6 +432,6 @@
     </div>
   </div>
 
-<script type="module" src="/assets/site.js?v=20260720-4"></script>
+<script type="module" src="/assets/site.js?v=20260722-5"></script>
 </body>
 </html>

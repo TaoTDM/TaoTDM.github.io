@@ -1,12 +1,11 @@
-/* ==================== EDIT TRAVELS HERE =========================
-   Names must match assets/world-paths.js (countries — e.g.
-   'United States of America', not 'USA') or assets/us-states-paths.js
-   (states — 'Texas'). `year` and `note` are optional:
-     year — shown in the hover tooltip
-     note — click the territory to read it
-   A bare string 'Taiwan' works too.
-   See README.md for the editing workflow.
-   ================================================================ */
+/* edit your travels here.
+   the country names must agree with assets/world-paths.js. for example, use
+   'United States of America', not 'USA'. the state names must agree with
+   assets/us-states-paths.js. for example, use 'Texas'.
+   the year and the note are optional. the hover tooltip shows the year. click
+   the territory to read the note.
+   a single string is also correct, for example 'Taiwan'.
+   for the steps, see README.md. */
 export const VISITED_COUNTRIES = [
   { name: 'United States of America', year: 0,
     note: 'home waters' },
@@ -39,13 +38,14 @@ export const PLANNED_COUNTRIES = [
   { name: 'Greece' },
 ];
 export const PLANNED_STATES = [
+  { name : 'Missouri' },
   { name: 'Washington' },
   { name: 'Oregon' },
   { name: 'Colorado' },
   { name: 'Massachusetts' },
 ];
 export const HOME_PORT = {
-  lat: 30.2672, lon: -97.7431,   /* world map position */
-  statesXY: [465, 495]           /* position on the albers states map */
+  lat: 30.2672, lon: -97.7431,   /* the position on the world map. */
+  statesXY: [465, 495]           /* the position on the albers states map. */
 };
-/* ================== END OF TRAVELS EDIT BLOCK ================== */
+/* end of the travels edit block. */

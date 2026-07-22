@@ -11,78 +11,192 @@ document.documentElement.classList.add('js-ready');
 (function() {
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* ---- rain: a canvas particle field, the page's centerpiece ----
-     Two depth layers (near = longer/faster/brighter, far = short/faint)
-     with a slowly decaying wind gust for drift. Painted every frame only
-     while the atmosphere is on; skipped entirely under reduced-motion. */
-  var rainCanvas = document.getElementById('rain');
-  var rainCtx = rainCanvas.getContext('2d');
-  var drops = [];
-  var rainRAF = null;
-  var rainW = 0, rainH = 0, gust = 0;
+  /* one canvas and one scheduler show the rain and the dew. */
+  var weatherCanvas = document.getElementById('weather-canvas');
+  var weatherCtx = weatherCanvas.getContext('2d');
+  var rainDrops = [], splashes = [], dewDrops = [];
+  var weatherRAF = null, weatherMode = null, lastWeatherFrame = 0;
+  var weatherResizeTimer = null, weatherSwapTimer = null, weatherSwapToken = 0;
+  var weatherW = 0, weatherH = 0, gust = 0;
+  var WEATHER_FRAME_MS = { rain: 0, dew: 42 };
 
-  function makeDrop(fromTop) {
+  function makeRainDrop(fromTop) {
     var near = Math.random() < 0.4;
     return {
-      x: Math.random() * (rainW + 60) - 30,
-      y: fromTop ? -20 : Math.random() * rainH,
+      x: Math.random() * (weatherW + 60) - 30,
+      y: fromTop ? -20 : Math.random() * weatherH,
       len: near ? 15 + Math.random() * 12 : 7 + Math.random() * 8,
       speed: near ? 9 + Math.random() * 6 : 4 + Math.random() * 4,
       alpha: near ? 0.16 + Math.random() * 0.15 : 0.05 + Math.random() * 0.09,
       w: near ? 1.0 : 0.6
     };
   }
-  function buildDrops() {
-    var count = Math.max(45, Math.min(230, Math.round(rainW * rainH / 12000)));
-    drops = [];
-    for (var i = 0; i < count; i++) drops.push(makeDrop(false));
+  function buildRain() {
+    var count = Math.max(45, Math.min(230, Math.round(weatherW * weatherH / 12000)));
+    rainDrops = [];
+    for (var i = 0; i < count; i++) rainDrops.push(makeRainDrop(false));
   }
-  function sizeRain() {
+  function makeDew() {
+    var nearEdge = Math.random() < 0.7;
+    var left = Math.random() < 0.5;
+    var x = nearEdge
+      ? (left ? Math.random() * weatherW * 0.3 : weatherW * (0.7 + Math.random() * 0.3))
+      : weatherW * (0.14 + Math.random() * 0.72);
+    var radius = 1.5 + Math.random() * 3.2;
+    var runner = Math.random() < 0.22;
+    return {
+      x: x,
+      y: weatherH * (0.1 + Math.random() * 0.84),
+      rx: radius,
+      ry: radius * (1.05 + Math.random() * 0.5),
+      alpha: 0.46 + Math.random() * 0.42,
+      phase: Math.random() * Math.PI * 2,
+      phaseSpeed: 0.035 + Math.random() * 0.045,
+      drift: (Math.random() - 0.5) * 0.035,
+      vy: runner ? 0.15 + Math.random() * 0.24 : 0.012 + Math.random() * 0.035,
+      trail: runner ? 5 + Math.random() * 13 : 0
+    };
+  }
+  function buildDew() {
+    var count = Math.max(18, Math.min(38, Math.round(weatherW * weatherH / 52000)));
+    dewDrops = [];
+    for (var i = 0; i < count; i++) dewDrops.push(makeDew());
+  }
+  function sizeWeather() {
     var dpr = Math.min(window.devicePixelRatio || 1, 2);
-    rainW = window.innerWidth;
-    rainH = window.innerHeight;
-    rainCanvas.width = rainW * dpr;
-    rainCanvas.height = rainH * dpr;
-    rainCanvas.style.width = rainW + 'px';
-    rainCanvas.style.height = rainH + 'px';
-    rainCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    buildDrops();
+    weatherW = window.innerWidth;
+    weatherH = window.innerHeight;
+    weatherCanvas.width = weatherW * dpr;
+    weatherCanvas.height = weatherH * dpr;
+    weatherCanvas.style.width = weatherW + 'px';
+    weatherCanvas.style.height = weatherH + 'px';
+    weatherCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    buildRain();
+    buildDew();
+    if (reduced && weatherMode) renderWeather(performance.now(), true);
   }
-  function drawRain() {
-    rainCtx.clearRect(0, 0, rainW, rainH);
+  function drawRain(still) {
     gust *= 0.96;
-    if (Math.random() < 0.004) gust = (Math.random() - 0.3) * 2.4;
+    if (!still && Math.random() < 0.004) gust = (Math.random() - 0.3) * 2.4;
     var slant = 0.9 + gust;
-    for (var i = 0; i < drops.length; i++) {
-      var d = drops[i];
-      rainCtx.strokeStyle = 'rgba(190, 212, 210,' + d.alpha + ')';
-      rainCtx.lineWidth = d.w;
-      rainCtx.beginPath();
-      rainCtx.moveTo(d.x, d.y);
-      rainCtx.lineTo(d.x - slant * (d.len / d.speed) * 2, d.y - d.len);
-      rainCtx.stroke();
-      d.y += d.speed;
-      d.x += slant * 0.6;
-      if (d.y - d.len > rainH) {
-        var nd = makeDrop(true);
-        d.x = nd.x; d.y = nd.y; d.len = nd.len;
-        d.speed = nd.speed; d.alpha = nd.alpha; d.w = nd.w;
+    var groundY = weatherH - 18;
+    for (var i = 0; i < rainDrops.length; i++) {
+      var d = rainDrops[i];
+      weatherCtx.strokeStyle = 'rgba(190,212,210,' + d.alpha + ')';
+      weatherCtx.lineWidth = d.w;
+      weatherCtx.beginPath();
+      weatherCtx.moveTo(d.x, d.y);
+      weatherCtx.lineTo(d.x - slant * (d.len / d.speed) * 2, d.y - d.len);
+      weatherCtx.stroke();
+      if (!still) {
+        d.y += d.speed;
+        d.x += slant * 0.6;
+        if (d.w >= 1 && !d.splashed && d.y >= groundY) {
+          d.splashed = true;
+          if (splashes.length < 60 && Math.random() < 0.85) splashes.push({ x: d.x, r: 0.6, a: 0.45 });
+        }
+        if (d.y - d.len > weatherH) {
+          var next = makeRainDrop(true);
+          d.x = next.x; d.y = next.y; d.len = next.len;
+          d.speed = next.speed; d.alpha = next.alpha; d.w = next.w;
+          d.splashed = false;
+        }
       }
     }
-    rainRAF = requestAnimationFrame(drawRain);
+    for (var s = splashes.length - 1; s >= 0; s--) {
+      var sp = splashes[s];
+      if (!still) { sp.r += 0.9; sp.a -= 0.024; }
+      if (sp.a <= 0) { splashes.splice(s, 1); continue; }
+      weatherCtx.strokeStyle = 'rgba(200,216,214,' + sp.a.toFixed(3) + ')';
+      weatherCtx.lineWidth = 0.8;
+      weatherCtx.beginPath();
+      weatherCtx.ellipse(sp.x, groundY, sp.r, sp.r * 0.42, 0, Math.PI, Math.PI * 2);
+      weatherCtx.stroke();
+    }
   }
-  function startRain() {
-    if (reduced || rainRAF) return;
-    rainRAF = requestAnimationFrame(drawRain);
+  function drawDew(still) {
+    weatherCtx.globalCompositeOperation = 'screen';
+    for (var i = 0; i < dewDrops.length; i++) {
+      var d = dewDrops[i];
+      if (!still) {
+        d.phase += d.phaseSpeed;
+        d.y += d.vy;
+        d.x += d.drift + Math.sin(d.phase) * 0.018;
+        if (!d.trail && Math.random() < 0.00035) {
+          d.trail = 6 + Math.random() * 12;
+          d.vy = 0.15 + Math.random() * 0.24;
+          d.ry *= 1.18;
+        }
+        if (d.y - d.trail > weatherH + 8) {
+          var next = makeDew();
+          next.y = -next.ry - next.trail;
+          dewDrops[i] = d = next;
+        }
+      }
+      var shimmer = d.alpha * (0.72 + Math.sin(d.phase) * 0.28);
+      if (d.trail) {
+        weatherCtx.strokeStyle = 'rgba(151,180,207,' + (shimmer * 0.20).toFixed(3) + ')';
+        weatherCtx.lineWidth = Math.max(0.7, d.rx * 0.45);
+        weatherCtx.beginPath();
+        weatherCtx.moveTo(d.x, d.y - d.trail);
+        weatherCtx.lineTo(d.x, d.y - d.ry * 0.5);
+        weatherCtx.stroke();
+      }
+      weatherCtx.fillStyle = 'rgba(154,188,213,' + (shimmer * 0.19).toFixed(3) + ')';
+      weatherCtx.beginPath();
+      weatherCtx.ellipse(d.x, d.y, d.rx * 1.45, d.ry * 1.45, 0, 0, Math.PI * 2);
+      weatherCtx.fill();
+      weatherCtx.strokeStyle = 'rgba(225,237,243,' + (shimmer * 0.62).toFixed(3) + ')';
+      weatherCtx.lineWidth = 0.65;
+      weatherCtx.beginPath();
+      weatherCtx.ellipse(d.x, d.y, d.rx, d.ry, 0, 0, Math.PI * 2);
+      weatherCtx.stroke();
+      weatherCtx.fillStyle = 'rgba(255,245,249,' + (shimmer * 0.92).toFixed(3) + ')';
+      weatherCtx.beginPath();
+      weatherCtx.arc(d.x - d.rx * 0.28, d.y - d.ry * 0.3, Math.max(0.55, d.rx * 0.2), 0, Math.PI * 2);
+      weatherCtx.fill();
+      weatherCtx.fillStyle = 'rgba(220,155,178,' + (shimmer * 0.34).toFixed(3) + ')';
+      weatherCtx.beginPath();
+      weatherCtx.arc(d.x + d.rx * 0.2, d.y + d.ry * 0.28, Math.max(0.45, d.rx * 0.15), 0, Math.PI * 2);
+      weatherCtx.fill();
+    }
+    weatherCtx.globalCompositeOperation = 'source-over';
   }
-  function stopRain() {
-    if (rainRAF) { cancelAnimationFrame(rainRAF); rainRAF = null; }
-    rainCtx.clearRect(0, 0, rainW, rainH);
+  function renderWeather(now, still) {
+    weatherCtx.clearRect(0, 0, weatherW, weatherH);
+    if (weatherMode === 'rain') drawRain(still);
+    else if (weatherMode === 'dew') drawDew(still);
   }
-  window.addEventListener('resize', sizeRain);
-  sizeRain();
+  function weatherFrame(now) {
+    if (!weatherMode) return;
+    var interval = WEATHER_FRAME_MS[weatherMode] || 0;
+    if (!interval || now - lastWeatherFrame >= interval) {
+      lastWeatherFrame = now;
+      renderWeather(now, false);
+    }
+    weatherRAF = requestAnimationFrame(weatherFrame);
+  }
+  function startWeatherCanvas(mode) {
+    if (weatherMode === mode && (weatherRAF || reduced)) return;
+    stopWeatherCanvas();
+    weatherMode = mode;
+    if (reduced) { renderWeather(performance.now(), true); return; }
+    weatherRAF = requestAnimationFrame(weatherFrame);
+  }
+  function stopWeatherCanvas() {
+    if (weatherRAF) { cancelAnimationFrame(weatherRAF); weatherRAF = null; }
+    weatherMode = null;
+    lastWeatherFrame = 0;
+    splashes.length = 0;
+    weatherCtx.clearRect(0, 0, weatherW, weatherH);
+  }
+  window.addEventListener('resize', function() {
+    clearTimeout(weatherResizeTimer);
+    weatherResizeTimer = setTimeout(sizeWeather, 120);
+  });
+  sizeWeather();
 
-  /* ---- cursor lantern: a warm light that follows the pointer (smoothed) ---- */
+  /* cursor lantern. a warm light moves slowly to the pointer. */
   var root = document.documentElement;
   var lantX = window.innerWidth / 2, lantY = window.innerHeight * 0.26;
   var lantTX = lantX, lantTY = lantY, lantRAF = null;
@@ -105,47 +219,316 @@ document.documentElement.classList.add('js-ready');
     }, { passive: true });
   }
 
-  /* ---- time-of-day lighting (dawn / dusk / night), persisted ---- */
+  /* the scene atmosphere agrees with the image. the rain and the dew use the
+     canvas. the dusk fog uses the css layers. */
+  var HERO_IMAGES = {
+    dawn: '/images/pnw-cascade-dawn-alpenglow-bg.webp',
+    dusk: '/images/pnw-coast-dusk-mist-cliff-bg.webp',
+    night: '/images/pnw-forest-night-inset-bg.webp'
+  };
+  var heroLayers = Array.prototype.slice.call(document.querySelectorAll('.hero-bg'));
+  var activeHeroLayer = document.querySelector('.hero-bg.is-active') || heroLayers[0];
+  var heroSwapToken = 0;
+  function swapHeroScene(tod) {
+    var token = ++heroSwapToken;
+    if (!activeHeroLayer || activeHeroLayer.dataset.scene === tod) return;
+    var incoming = heroLayers[0] === activeHeroLayer ? heroLayers[1] : heroLayers[0];
+    var image = new Image();
+    var revealed = false;
+    function reveal() {
+      if (revealed || token !== heroSwapToken || !incoming) return;
+      revealed = true;
+      incoming.dataset.scene = tod;
+      requestAnimationFrame(function() {
+        if (token !== heroSwapToken) return;
+        incoming.classList.add('is-active');
+        activeHeroLayer.classList.remove('is-active');
+        activeHeroLayer = incoming;
+      });
+    }
+    image.onload = reveal;
+    image.onerror = reveal;
+    image.src = HERO_IMAGES[tod] || HERO_IMAGES.night;
+    if (image.complete) reveal();
+  }
+  Object.keys(HERO_IMAGES).forEach(function(key) {
+    var image = new Image();
+    image.src = HERO_IMAGES[key];
+  });
+
+  var watch = document.getElementById('watch-toggle');
+  var mistOn = true;
+  try { if (localStorage.getItem('v4-mist') === 'off') mistOn = false; } catch (e) {}
+  var weatherLine = document.getElementById('weather-line');
+  var sceneCue = document.getElementById('scene-cue');
+  var WEATHER_BY_TOD = {
+    dawn: { key: 'dew', icon: '💧', label: 'morning dew', line: 'morning dew', cue: 'cross the cloudline' },
+    dusk: { key: 'fog', icon: '🌫️', label: 'coastal fog', line: 'coastal fog', cue: 'enter the mist' },
+    night: { key: 'rain', icon: '🌧️', label: 'forest rain', line: 'night rain', cue: 'enter the rain' }
+  };
+
+  /* time-of-day. an emoji control with a pill that moves. */
+  var TOD_ORDER = ['dawn', 'dusk', 'night'];
+  var todGroup = document.querySelector('.tod');
+  var todSlider = document.querySelector('.tod-slider');
   var todBtns = Array.prototype.slice.call(document.querySelectorAll('.tod-btn'));
-  function setTod(tod) {
-    if (tod === 'night') root.removeAttribute('data-tod');
-    else root.setAttribute('data-tod', tod);
+  var currentTod = 'dawn';
+  function syncSceneWeather() {
+    var weather = WEATHER_BY_TOD[currentTod] || WEATHER_BY_TOD.night;
+    var nextCanvasMode = weather.key === 'rain' || weather.key === 'dew' ? weather.key : null;
+    root.setAttribute('data-weather', weather.key);
+    clearTimeout(weatherSwapTimer);
+    var swapToken = ++weatherSwapToken;
+    if (!mistOn || document.hidden) {
+      weatherCanvas.classList.remove('is-changing');
+      stopWeatherCanvas();
+    } else if (!nextCanvasMode) {
+      if (!reduced && weatherMode) {
+        weatherCanvas.classList.add('is-changing');
+        weatherSwapTimer = setTimeout(function() {
+          if (swapToken !== weatherSwapToken) return;
+          stopWeatherCanvas();
+          weatherCanvas.classList.remove('is-changing');
+        }, 320);
+      } else {
+        stopWeatherCanvas();
+        weatherCanvas.classList.remove('is-changing');
+      }
+    } else if (!reduced && weatherMode && weatherMode !== nextCanvasMode) {
+      weatherCanvas.classList.add('is-changing');
+      weatherSwapTimer = setTimeout(function() {
+        if (swapToken !== weatherSwapToken) return;
+        startWeatherCanvas(nextCanvasMode);
+        requestAnimationFrame(function() { weatherCanvas.classList.remove('is-changing'); });
+      }, 320);
+    } else if (!reduced && !weatherMode) {
+      weatherCanvas.classList.add('is-changing');
+      startWeatherCanvas(nextCanvasMode);
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() { weatherCanvas.classList.remove('is-changing'); });
+      });
+    } else {
+      startWeatherCanvas(nextCanvasMode);
+      weatherCanvas.classList.remove('is-changing');
+    }
+    if (weatherLine) weatherLine.textContent = weather.line;
+    if (sceneCue) sceneCue.textContent = weather.cue;
+    if (!watch) return;
+    watch.textContent = mistOn ? weather.icon : '☀️';
+    watch.title = mistOn
+      ? weather.label + ' on — click to clear the weather'
+      : 'weather cleared — click for ' + weather.label;
+    watch.setAttribute('aria-label', 'toggle ' + weather.label);
+    watch.setAttribute('aria-pressed', String(mistOn));
+  }
+  function moveTodSlider(btn) {
+    if (!todSlider || !btn) return;
+    todSlider.style.width = btn.offsetWidth + 'px';
+    todSlider.style.transform = 'translateX(' + (btn.offsetLeft - todSlider.offsetLeft) + 'px)';
+    todSlider.style.opacity = '1';
+  }
+  function setTod(tod, persist) {
+    currentTod = tod;
+    root.setAttribute('data-tod', tod);
+    swapHeroScene(tod);
+    var active = null;
     todBtns.forEach(function(b) {
       var on = b.getAttribute('data-tod') === tod;
       b.classList.toggle('on', on);
       b.setAttribute('aria-pressed', String(on));
+      if (on) active = b;
     });
-    try { localStorage.setItem('v4-tod', tod); } catch (e) {}
+    moveTodSlider(active);
+    syncSceneWeather();
+    if (SCENE_SOUNDS) {
+      if (soundOn) syncSceneSound();
+      else updateSoundButton();
+    }
+    if (persist !== false) { try { localStorage.setItem('v4-tod', tod); } catch (e) {} }
   }
-  var savedTod = 'night';
-  try { savedTod = localStorage.getItem('v4-tod') || 'night'; } catch (e) {}
-  if (['dawn', 'dusk', 'night'].indexOf(savedTod) === -1) savedTod = 'night';
-  setTod(savedTod);
+  /* start new visitors at dawn. returning visitors keep their last scene. */
+  var savedTod = null;
+  try { savedTod = localStorage.getItem('v4-tod'); } catch (e) {}
+  if (TOD_ORDER.indexOf(savedTod) === -1) setTod('dawn', false);
+  else setTod(savedTod);
+  /* the fonts and emoji change the button widths after load. set the pill position again. */
+  window.addEventListener('load', function() { moveTodSlider(todGroup && todGroup.querySelector('.tod-btn.on')); });
+  window.addEventListener('resize', function() { moveTodSlider(todGroup && todGroup.querySelector('.tod-btn.on')); });
   todBtns.forEach(function(b) {
     b.addEventListener('click', function() { setTod(b.getAttribute('data-tod')); });
   });
+  /* turn the wheel on the control to change dawn, dusk, or night. */
+  if (todGroup) {
+    todGroup.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var i = TOD_ORDER.indexOf(currentTod);
+      i = (i + (e.deltaY > 0 ? 1 : -1) + TOD_ORDER.length) % TOD_ORDER.length;
+      setTod(TOD_ORDER[i]);
+    }, { passive: false });
+  }
 
-  /* ---- [mist] toggle: mist + rain on/off, persisted ---- */
-  var watch = document.getElementById('watch-toggle');
-  var mistOn = true;
+  /* weather button. set the dew, fog, or rain to on or off. keep the setting. */
   function setMist(on) {
     mistOn = on;
     if (on) {
       document.documentElement.removeAttribute('data-mist');
-      watch.textContent = 'hide mist';
-      startRain();
     } else {
       document.documentElement.setAttribute('data-mist', 'off');
-      watch.textContent = 'show mist';
-      stopRain();
     }
+    syncSceneWeather();
     try { localStorage.setItem('v4-mist', on ? 'on' : 'off'); } catch (e) {}
   }
-  try { if (localStorage.getItem('v4-mist') === 'off') mistOn = false; } catch (e) {}
   setMist(mistOn);
-  watch.addEventListener('click', function() { setMist(!mistOn); });
+  if (watch) watch.addEventListener('click', function() { setMist(!mistOn); });
 
-  /* ---- email: copy with toast ---- */
+  /* sounds for each theme. */
+  var DAWN_SOUND_URL = '/audio/dawn.mp3';
+  var DUSK_SOUND_URL = '/audio/dusk.mp3';
+  var NIGHT_SOUND_URL = '/audio/night.ogg';
+
+  var SCENE_SOUNDS = {
+    dawn: {
+      url: DAWN_SOUND_URL, label: 'morning pine air', volume: 0.34,
+      fallback: { noise: 'brown', highpass: 115, lowpass: 1050, gain: 0.07, rate: 0.045, wander: 170 }
+    },
+    dusk: {
+      url: DUSK_SOUND_URL, label: 'fogbound coast', volume: 0.36,
+      fallback: { noise: 'brown', highpass: 74, lowpass: 860, gain: 0.06, rate: 0.045, wander: 110 }
+    },
+    night: {
+      url: NIGHT_SOUND_URL, label: 'forest rain', volume: 0.42,
+      fallback: { noise: 'pink', highpass: 230, lowpass: 1420, gain: 0.12, rate: 0.065, wander: 150 }
+    }
+  };
+
+  var soundBtn = document.getElementById('sound-toggle');
+  var soundOn = false;
+  var ambientAudio = null;                 /* the custom HTMLAudioElement. */
+  var audioCtx = null;
+  var generatedSource = null, generatedLfo = null, soundGain = null;
+
+  function fadeAudio(el, to, ms, done) {
+    var from = el.volume, start = performance.now();
+    (function step(now) {
+      var k = Math.min(1, (now - start) / ms);
+      el.volume = Math.max(0, Math.min(1, from + (to - from) * k));
+      if (k < 1) requestAnimationFrame(step);
+      else if (done) done();
+    })(performance.now());
+  }
+  function stopCustomSound(ms) {
+    var audio = ambientAudio;
+    ambientAudio = null;
+    if (!audio) return;
+    if (!ms) { audio.pause(); return; }
+    fadeAudio(audio, 0, ms, function() { audio.pause(); });
+  }
+  function stopGeneratedSound(ms) {
+    var source = generatedSource;
+    var lfo = generatedLfo;
+    var gain = soundGain;
+    generatedSource = generatedLfo = soundGain = null;
+    if (!source) return;
+    function dispose() {
+      try { source.stop(); } catch (e) {}
+      try { source.disconnect(); } catch (e) {}
+      if (lfo) {
+        try { lfo.stop(); } catch (e) {}
+        try { lfo.disconnect(); } catch (e) {}
+      }
+      if (gain) { try { gain.disconnect(); } catch (e) {} }
+    }
+    if (ms && gain && audioCtx) {
+      var t = audioCtx.currentTime;
+      gain.gain.cancelScheduledValues(t);
+      gain.gain.setValueAtTime(gain.gain.value, t);
+      gain.gain.linearRampToValueAtTime(0, t + ms / 1000);
+      setTimeout(dispose, ms + 40);
+    } else dispose();
+  }
+  function stopSceneSound(ms) {
+    stopCustomSound(ms);
+    stopGeneratedSound(ms);
+  }
+  function buildGeneratedSound(profile) {
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    if (!audioCtx) audioCtx = new AC();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    var len = Math.floor(audioCtx.sampleRate * 2);
+    var buf = audioCtx.createBuffer(1, len, audioCtx.sampleRate);
+    var data = buf.getChannelData(0);
+    var b0 = 0, b1 = 0, b2 = 0, brown = 0;
+    for (var i = 0; i < len; i++) {
+      var white = Math.random() * 2 - 1;
+      if (profile.noise === 'brown') {
+        brown = (brown + white * 0.02) / 1.02;
+        data[i] = brown * 3.4;
+      } else {
+        b0 = 0.99765 * b0 + white * 0.0990460;
+        b1 = 0.96300 * b1 + white * 0.2965164;
+        b2 = 0.57000 * b2 + white * 1.0526913;
+        data[i] = (b0 + b1 + b2 + white * 0.1848) * 0.16;
+      }
+    }
+    var src = audioCtx.createBufferSource();
+    src.buffer = buf; src.loop = true;
+    var hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = profile.highpass;
+    var lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = profile.lowpass; lp.Q.value = 0.5;
+    soundGain = audioCtx.createGain(); soundGain.gain.value = 0;
+    src.connect(hp); hp.connect(lp); lp.connect(soundGain); soundGain.connect(audioCtx.destination);
+
+    /* a slow filter change stops the loop sound from becoming flat. */
+    var lfo = audioCtx.createOscillator();
+    var lfoDepth = audioCtx.createGain();
+    lfo.frequency.value = profile.rate;
+    lfoDepth.gain.value = profile.wander;
+    lfo.connect(lfoDepth); lfoDepth.connect(lp.frequency);
+    generatedSource = src;
+    generatedLfo = lfo;
+    src.start();
+    lfo.start();
+    var t = audioCtx.currentTime;
+    soundGain.gain.linearRampToValueAtTime(profile.gain, t + 0.8);
+    return true;
+  }
+  function startSceneSound(tod) {
+    var scene = SCENE_SOUNDS[tod] || SCENE_SOUNDS.night;
+    stopSceneSound(260);
+    if (scene.url) {
+      ambientAudio = new Audio(scene.url);
+      ambientAudio.loop = true;
+      ambientAudio.preload = 'auto';
+      ambientAudio.volume = 0;
+      var p = ambientAudio.play();
+      if (p && p.catch) p.catch(function() {});
+      fadeAudio(ambientAudio, scene.volume, 800);
+      return true;
+    }
+    return buildGeneratedSound(scene.fallback);
+  }
+  function updateSoundButton() {
+    if (!soundBtn || !SCENE_SOUNDS) return;
+    var scene = SCENE_SOUNDS[currentTod] || SCENE_SOUNDS.night;
+    soundBtn.textContent = soundOn ? '🔊' : '🔇';
+    soundBtn.title = scene.label + (soundOn ? ' — on' : ' — off');
+    soundBtn.setAttribute('aria-label', 'toggle ' + scene.label);
+    soundBtn.setAttribute('aria-pressed', String(soundOn));
+  }
+  function syncSceneSound() {
+    if (soundOn && !startSceneSound(currentTod)) soundOn = false;
+    updateSoundButton();
+  }
+  function setSound(on) {
+    soundOn = on;
+    if (on && !startSceneSound(currentTod)) soundOn = false;
+    else if (!on) stopSceneSound(400);
+    updateSoundButton();
+  }
+  if (soundBtn) soundBtn.addEventListener('click', function() { setSound(!soundOn); });
+  updateSoundButton();
+
+  /* email. copy it and show a toast. */
   var email = 'tao' + '@' + 'taotdm.com';
   var toast = document.getElementById('toast');
   var toastTimer;
@@ -167,7 +550,7 @@ document.documentElement.classList.add('js-ready');
     el.addEventListener('click', copyEmail);
   });
 
-  /* ---- reveal on scroll ---- */
+  /* show the sections when you scroll. */
   var revealer = new IntersectionObserver(function(entries) {
     entries.forEach(function(en) {
       if (en.isIntersecting) {
@@ -178,411 +561,77 @@ document.documentElement.classList.add('js-ready');
   }, { threshold: 0.08 });
   document.querySelectorAll('.reveal').forEach(function(el) { revealer.observe(el); });
 
-  /* ---- weather bearing: the compass ring updates only when data changes ---- */
-  var windRing = document.getElementById('wind-ring');
-  function setWindRing(direction, speed) {
-    if (!Number.isFinite(direction) || !Number.isFinite(speed)) return;
-    direction = ((direction % 360) + 360) % 360;
-    speed = Math.max(0, Math.min(80, speed));
-    windRing.style.transform = 'rotate(' + direction.toFixed(1) + 'deg)';
-    windRing.style.opacity = Math.min(0.95, 0.42 + speed / 35).toFixed(2);
+  /* scroll-spy. highlight the rail entry that is in view. */
+  var spyLinks = Array.prototype.slice.call(document.querySelectorAll('.spy a'));
+  if (spyLinks.length) {
+    var spyMap = {};
+    spyLinks.forEach(function(a) { spyMap[a.getAttribute('data-spy')] = a; });
+    var spyObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(en) {
+        if (!en.isIntersecting) return;
+        spyLinks.forEach(function(a) { a.classList.remove('on'); });
+        var a = spyMap[en.target.id];
+        if (a) a.classList.add('on');
+      });
+    }, { rootMargin: '-45% 0px -45% 0px', threshold: 0 });
+    ['about', 'experience', 'projects', 'uni', 'honors', 'travels'].forEach(function(id) {
+      var el = document.getElementById(id);
+      if (el) spyObserver.observe(el);
+    });
   }
 
-  /* ---- scroll: compass bearing (spring-damped pendulum) + ruler marker ----
-     The needle doesn't jump straight to its target angle. Every animation
-     frame it's pulled toward the target by a spring and slowed by damping,
-     so a fast scroll makes it swing past the resting bearing and wobble
-     back — same physics whether that happens mid-scroll or right at the
-     very top/bottom of the page, no special-casing needed. */
-  var needle = document.getElementById('needle');
+  /* the scroll-progress marker on the left edge. */
   var latMarker = document.getElementById('lat-marker');
-  var bearing = { angle: 0, vel: 0, target: 0 };
-  var springRunning = false;
-  var STIFFNESS = 0.04;   // how hard the spring pulls toward the target
-  var DAMPING = 0.79;     // fraction of velocity kept each frame (lower = settles faster, less swing)
-
-  function stepSpring() {
-    var diff = bearing.target - bearing.angle;
-    bearing.vel = (bearing.vel + diff * STIFFNESS) * DAMPING;
-    bearing.angle += bearing.vel;
-    needle.style.transform = 'rotate(' + bearing.angle + 'deg)';
-    if (Math.abs(diff) > 0.05 || Math.abs(bearing.vel) > 0.05) {
-      requestAnimationFrame(stepSpring);
-    } else {
-      bearing.angle = bearing.target;
-      bearing.vel = 0;
-      needle.style.transform = 'rotate(' + bearing.angle + 'deg)';
-      springRunning = false;
-    }
-  }
-
   function onScroll() {
     var h = document.documentElement;
     var max = h.scrollHeight - h.clientHeight;
     var p = max > 0 ? h.scrollTop / max : 0;
     latMarker.style.top = (p * (h.clientHeight - 12)) + 'px';
-    if (reduced) {
-      needle.style.transform = 'rotate(' + (p * 360) + 'deg)';
-      return;
-    }
-    bearing.target = p * 360;
-    if (!springRunning) {
-      springRunning = true;
-      requestAnimationFrame(stepSpring);
-    }
   }
   window.addEventListener('scroll', onScroll, { passive: true });
   window.addEventListener('resize', onScroll);
   onScroll();
 
-  /* ---- ship's time (austin) ---- */
-  var clock = document.getElementById('clock');
-  var fmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Chicago',
-    hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
-  var localtime = document.getElementById('localtime');
-  var fmtLocal = new Intl.DateTimeFormat('en-US', {
-    hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit'
-  });
-  function tickClock() {
-    clock.textContent = fmt.format(new Date());
-    localtime.textContent = fmtLocal.format(new Date());
-  }
-  tickClock();
-  setInterval(tickClock, 1000);
+  /* only the scene needs the visibility update. the status bar is removed. it
+     does not start a clock or get the remote weather. */
+  document.addEventListener('visibilitychange', syncSceneWeather);
 
-  /* ---- observed conditions: NWS station data with Open-Meteo fallback ---- */
-  var conditions = document.getElementById('conditions');
-  var weatherTxt = 'fair weather';
-  var sunTxt = '';
-  var weatherMeta = null;
-  var weatherLoading = false;
-  var weatherLoadedAt = 0;
-  var NWS_STATION_CACHE = 'v3-nws-station';
-  var NWS_STATION_TTL = 7 * 86400000;
-  var NWS_MAX_AGE = 90 * 60000;
-  var OPEN_METEO_MAX_AGE = 2 * 3600000;
-  var DEFAULT_WEATHER = {
-    source: 'local estimate',
-    sourceCode: 'fallback',
-    station: '',
-    description: 'fair weather',
-    temperature: null,
-    windDirection: 135,
-    windSpeed: 6,
-    observedAt: null
-  };
-  var sunFmt = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'America/Chicago',
-    hour12: false,
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-  var WMO = { 0: 'clear skies', 1: 'fair weather', 2: 'passing clouds', 3: 'overcast',
-    45: 'fog', 48: 'rime fog', 51: 'light drizzle', 53: 'drizzle', 55: 'heavy drizzle',
-    56: 'freezing drizzle', 57: 'freezing drizzle', 61: 'light rain', 63: 'rain',
-    65: 'heavy rain', 66: 'freezing rain', 67: 'freezing rain', 71: 'light snow',
-    73: 'snow', 75: 'heavy snow', 77: 'snow grains', 80: 'showers', 81: 'showers',
-    82: 'heavy showers', 95: 'thunderstorms', 96: 'thunderstorms', 99: 'hail & thunder' };
-  var windDirs = ['n', 'nne', 'ne', 'ene', 'e', 'ese', 'se', 'sse',
-                  's', 'ssw', 'sw', 'wsw', 'w', 'wnw', 'nw', 'nnw'];
-
-  function moonTxt() {
-    var syn = 29.53058867;
-    var d = ((Date.now() - Date.UTC(2000, 0, 6, 18, 14)) / 86400000) % syn;
-    var names = ['new moon', 'wax crescent', 'first qtr', 'wax gibbous',
-                 'full moon', 'wan gibbous', 'last qtr', 'wan crescent'];
-    return '☾ ' + names[Math.floor(((d + syn / 16) % syn) / (syn / 8))];
-  }
-  function renderConditions() {
-    conditions.textContent = [weatherTxt, sunTxt, moonTxt()].filter(Boolean).join(' · ');
-  }
-
-  function fetchJson(url, options) {
-    options = options || {};
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeout = controller ? setTimeout(function() { controller.abort(); }, 8000) : 0;
-    var requestOptions = {};
-    Object.keys(options).forEach(function(key) { requestOptions[key] = options[key]; });
-    if (controller) requestOptions.signal = controller.signal;
-    return fetch(url, requestOptions).then(function(r) {
-      if (!r.ok) throw new Error('weather request failed: ' + r.status);
-      return r.json();
-    }).finally(function() {
-      if (timeout) clearTimeout(timeout);
+  /* keep the accordions open in the dom, so the content always prints. the
+     [data-x] attribute and css hide the closed content. open only one per
+     plate. open them here before the travels and github listeners attach. then
+     their loads start only from the clicks below. */
+  document.querySelectorAll('details.fix').forEach(function(d) { d.open = true; });
+  function expandFix(details) {
+    var body = details.closest('.plate-body');
+    if (body) body.querySelectorAll('details.fix[data-x]').forEach(function(d) {
+      if (d !== details) d.removeAttribute('data-x');       /* only one open per plate. */
     });
+    details.setAttribute('data-x', '');
+    var log = details.querySelector('.log');                 /* play the surface animation again. */
+    if (log) { log.style.animation = 'none'; void log.offsetWidth; log.style.animation = ''; }
+    if (details.id === 'travels-fix') ensureMap(currentLevel);   /* load on demand. */
+    else if (details.id === 'digital-fix') loadDigital();
   }
-
-  function finite(v) {
-    return typeof v === 'number' && Number.isFinite(v);
-  }
-
-  function quantityValue(q) {
-    return q && finite(q.value) ? q.value : null;
-  }
-
-  function quantityToF(q) {
-    var value = quantityValue(q);
-    if (value === null) return null;
-    if (q.unitCode && q.unitCode.indexOf('degC') !== -1) return value * 9 / 5 + 32;
-    return value;
-  }
-
-  function quantityToKnots(q) {
-    var value = quantityValue(q);
-    if (value === null) return null;
-    var unit = q.unitCode || '';
-    if (unit.indexOf('km_h-1') !== -1) return value / 1.852;
-    if (unit.indexOf('m_s-1') !== -1) return value * 1.943844;
-    if (unit.indexOf('mi_h-1') !== -1) return value * 0.868976;
-    return value;
-  }
-
-  function readStationCache() {
-    try {
-      var cached = JSON.parse(localStorage.getItem(NWS_STATION_CACHE));
-      if (cached && cached.url && Date.now() - cached.savedAt < NWS_STATION_TTL) return cached;
-    } catch (e) {}
-    return null;
-  }
-
-  function writeStationCache(station) {
-    try {
-      localStorage.setItem(NWS_STATION_CACHE, JSON.stringify(station));
-    } catch (e) {}
-  }
-
-  function clearStationCache() {
-    try { localStorage.removeItem(NWS_STATION_CACHE); } catch (e) {}
-  }
-
-  function resolveNwsStation(force) {
-    var cached = !force && readStationCache();
-    if (cached) return Promise.resolve(cached);
-    var headers = { Accept: 'application/geo+json' };
-    return fetchJson('https://api.weather.gov/points/30.2672,-97.7431', { headers: headers })
-      .then(function(point) {
-        var stationsUrl = point.properties && point.properties.observationStations;
-        if (!stationsUrl) throw new Error('NWS station list unavailable');
-        return fetchJson(stationsUrl, { headers: headers });
-      })
-      .then(function(stations) {
-        var feature = stations.features && stations.features[0];
-        if (!feature || !feature.id) throw new Error('NWS station unavailable');
-        var p = feature.properties || {};
-        var station = {
-          url: feature.id,
-          id: p.stationIdentifier || feature.id.split('/').pop(),
-          name: p.name || '',
-          savedAt: Date.now()
-        };
-        writeStationCache(station);
-        return station;
-      });
-  }
-
-  function fetchNwsObservation(station) {
-    return fetchJson(station.url + '/observations/latest', {
-      headers: { Accept: 'application/geo+json' }
-    }).then(function(observation) {
-      var p = observation.properties || {};
-      return {
-        source: 'National Weather Service',
-        sourceCode: 'nws',
-        station: p.stationId || station.id,
-        stationName: p.stationName || station.name,
-        description: (p.textDescription || '').toLowerCase(),
-        temperature: quantityToF(p.temperature),
-        windDirection: quantityValue(p.windDirection),
-        windSpeed: quantityToKnots(p.windSpeed),
-        observedAt: Date.parse(p.timestamp)
-      };
-    });
-  }
-
-  function loadNwsWeather() {
-    return resolveNwsStation(false)
-      .then(fetchNwsObservation)
-      .catch(function() {
-        clearStationCache();
-        return resolveNwsStation(true).then(fetchNwsObservation);
-      });
-  }
-
-  function loadOpenMeteoWeather() {
-    var url = 'https://api.open-meteo.com/v1/forecast?latitude=30.2672&longitude=-97.7431' +
-      '&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m' +
-      '&minutely_15=wind_speed_10m,wind_direction_10m&forecast_minutely_15=4' +
-      '&daily=sunrise,sunset&forecast_days=1&timezone=America%2FChicago&timeformat=unixtime' +
-      '&temperature_unit=fahrenheit&wind_speed_unit=kn&models=best_match';
-    return fetchJson(url).then(function(w) {
-      var c = w.current || {};
-      var minute = w.minutely_15 || {};
-      var daily = w.daily || {};
-      var windDirection = finite(c.wind_direction_10m) ? c.wind_direction_10m : null;
-      var windSpeed = finite(c.wind_speed_10m) ? c.wind_speed_10m : null;
-      if ((!finite(windDirection) || !finite(windSpeed)) &&
-          minute.wind_direction_10m && minute.wind_speed_10m) {
-        windDirection = finite(minute.wind_direction_10m[0]) ? minute.wind_direction_10m[0] : null;
-        windSpeed = finite(minute.wind_speed_10m[0]) ? minute.wind_speed_10m[0] : null;
-      }
-      return {
-        source: 'Open-Meteo best match',
-        sourceCode: 'open-meteo',
-        station: '',
-        stationName: '',
-        description: WMO[c.weather_code] || 'weather uncertain',
-        temperature: finite(c.temperature_2m) ? c.temperature_2m : null,
-        windDirection: windDirection,
-        windSpeed: windSpeed,
-        observedAt: finite(c.time) ? c.time * 1000 : null,
-        sunrise: daily.sunrise && finite(daily.sunrise[0]) ? daily.sunrise[0] * 1000 : null,
-        sunset: daily.sunset && finite(daily.sunset[0]) ? daily.sunset[0] * 1000 : null
-      };
-    });
-  }
-
-  function isFresh(weather, maxAge) {
-    if (!weather || !finite(weather.windDirection) || !finite(weather.windSpeed) ||
-        !finite(weather.observedAt)) return false;
-    var age = Date.now() - weather.observedAt;
-    return age >= -5 * 60000 && age <= maxAge;
-  }
-
-  function weatherAgeText(weather) {
-    if (!finite(weather.observedAt)) return 'estimated';
-    var minutes = Math.max(0, Math.round((Date.now() - weather.observedAt) / 60000));
-    var verb = weather.sourceCode === 'open-meteo' ? 'valid' : 'observed';
-    if (minutes < 2) return verb + ' just now';
-    if (minutes < 60) return verb + ' ' + minutes + ' min ago';
-    return verb + ' ' + Math.round(minutes / 60) + ' hr ago';
-  }
-
-  function updateWeatherMetadata() {
-    if (!weatherMeta) return;
-    var parts = [weatherMeta.source];
-    if (weatherMeta.station) parts.push(weatherMeta.station);
-    parts.push(weatherAgeText(weatherMeta));
-    conditions.title = parts.join(' · ');
-    conditions.dataset.weatherSource = weatherMeta.sourceCode;
-    conditions.dataset.weatherStation = weatherMeta.station || '';
-    conditions.dataset.weatherObserved = finite(weatherMeta.observedAt)
-      ? new Date(weatherMeta.observedAt).toISOString() : '';
-  }
-
-  function applyWeather(selected, openMeteo) {
-    var display = {
-      description: selected.description || (openMeteo && openMeteo.description) || 'fair weather',
-      temperature: finite(selected.temperature) ? selected.temperature
-        : openMeteo && finite(openMeteo.temperature) ? openMeteo.temperature : null,
-      windDirection: selected.windDirection,
-      windSpeed: selected.windSpeed
-    };
-    var dir = windDirs[Math.round(display.windDirection / 22.5) % 16];
-    weatherTxt = display.description +
-      (finite(display.temperature) ? ' · ' + Math.round(display.temperature) + '°f' : '') +
-      ' · ' + dir + ' ' + Math.round(display.windSpeed) + 'kt';
-    if (openMeteo && finite(openMeteo.sunrise) && finite(openMeteo.sunset)) {
-      sunTxt = '↑' + sunFmt.format(new Date(openMeteo.sunrise)) +
-        ' ↓' + sunFmt.format(new Date(openMeteo.sunset));
-    }
-    weatherMeta = selected;
-    setWindRing(selected.windDirection, selected.windSpeed);
-    updateWeatherMetadata();
-    renderConditions();
-  }
-
-  function loadWeather() {
-    if (typeof fetch === 'undefined') {
-      applyWeather(DEFAULT_WEATHER, null);
-      return;
-    }
-    if (weatherLoading) return;
-    weatherLoading = true;
-    Promise.all([
-      loadNwsWeather().catch(function() { return null; }),
-      loadOpenMeteoWeather().catch(function() { return null; })
-    ]).then(function(results) {
-      var nws = results[0];
-      var openMeteo = results[1];
-      var selected = isFresh(nws, NWS_MAX_AGE) ? nws
-        : isFresh(openMeteo, OPEN_METEO_MAX_AGE) ? openMeteo
-        : DEFAULT_WEATHER;
-      applyWeather(selected, openMeteo);
-      weatherLoadedAt = Date.now();
-    }).finally(function() {
-      weatherLoading = false;
-    });
-  }
-
-  renderConditions();
-  setWindRing(DEFAULT_WEATHER.windDirection, DEFAULT_WEATHER.windSpeed);
-  loadWeather();
-  setInterval(loadWeather, 15 * 60000);
-  setInterval(updateWeatherMetadata, 60000);
-  document.addEventListener('visibilitychange', function() {
-    if (!document.hidden && Date.now() - weatherLoadedAt > 15 * 60000) loadWeather();
-  });
-
-  /* ---- only one log open per plate feels tidier ---- */
-  var printing = false;
-  document.querySelectorAll('.plate-body').forEach(function(body) {
-    body.addEventListener('toggle', function(e) {
-      if (!e.target.open || printing) return;
-      /* restart the surfacing animation explicitly — relying on the
-         display:none -> block switch to replay it is flaky once other
-         overlays/animations have run */
-      var log = e.target.querySelector('.log');
-      if (log) {
-        log.style.animation = 'none';
-        void log.offsetWidth;
-        log.style.animation = '';
-      }
-      body.querySelectorAll('details.fix[open]').forEach(function(d) {
-        if (d !== e.target) d.open = false;
-      });
-    }, true);
-  });
-
-  /* ---- printing: open every entry, restore afterwards ---- */
-  var printOpened = [];
-  window.addEventListener('beforeprint', function() {
-    printing = true;
-    printOpened = [];
-    document.querySelectorAll('details.fix:not([open])').forEach(function(d) {
-      printOpened.push(d);
-      d.open = true;
+  document.querySelectorAll('details.fix > summary').forEach(function(summary) {
+    summary.addEventListener('click', function(e) {
+      e.preventDefault();                     /* stop the default toggle. this code controls the collapse. */
+      var details = summary.parentNode;
+      if (details.hasAttribute('data-x')) details.removeAttribute('data-x');
+      else expandFix(details);
     });
   });
-  window.addEventListener('afterprint', function() {
-    printOpened.forEach(function(d) { d.open = false; });
-    printOpened = [];
-    printing = false;
-  });
 
-  /* ---- rain easter egg ---- */
-  var overlay = document.getElementById('overlay');
-  var inset = document.getElementById('inset');
+  /* easter egg. when you type a place name, the map shows it quickly. */
   var buffer = '';
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') { overlay.classList.remove('open'); return; }
-    if (overlay.classList.contains('open')) return;
     if (e.target.tagName === 'INPUT' || e.metaKey || e.ctrlKey || e.altKey) return;
     if (e.key.length === 1) {
       buffer = (buffer + e.key.toLowerCase()).slice(-32);
-      if (buffer.slice(-4) === 'rain') { buffer = ''; overlay.classList.add('open'); }
-      else if (travelEgg(buffer)) { buffer = ''; }
+      if (travelEgg(buffer)) buffer = '';
     }
   });
-  overlay.addEventListener('click', function(e) {
-    if (!inset.contains(e.target)) overlay.classList.remove('open');
-  });
-  document.getElementById('inset-close').addEventListener('click', function() {
-    overlay.classList.remove('open');
-  });
 
-  /* ---- plate vi: chart of travels + field notes ---- */
+  /* plate vi. the travel map and the field notes. */
   var SVGNS = 'http://www.w3.org/2000/svg';
   var travelsFix = document.getElementById('travels-fix');
   var travelmap = document.querySelector('.travelmap');
@@ -591,7 +640,7 @@ document.documentElement.classList.add('js-ready');
   var mapTip = document.getElementById('map-tip');
   var fieldNote = document.getElementById('field-note');
 
-  /* normalise entries ('Taiwan' -> {name:'Taiwan'}) and index by name */
+  /* change each entry to an object, for example 'Taiwan' to {name:'Taiwan'}. index them by name. */
   function norm(list) {
     return list.map(function(e) { return typeof e === 'string' ? { name: e } : e; });
   }
@@ -632,7 +681,7 @@ document.documentElement.classList.add('js-ready');
     return el;
   }
 
-  /* ---- map geometry is split into two Vite chunks and loaded on demand ---- */
+  /* vite splits the map geometry into two chunks. load them on demand. */
   function addHatch(svg) {
     svg.style.setProperty('--planned-fill', 'url(#hatch-' + svg.id + ')');
     var defs = svgEl('defs', {});
@@ -661,15 +710,15 @@ document.documentElement.classList.add('js-ready');
       frag.appendChild(p);
     });
     level.svg.appendChild(frag);
-    /* scratch-off reveal: marked territories develop one by one */
+    /* show the marked territories one by one. */
     marked.forEach(function(m, i) {
       if (reduced) m.el.classList.add(m.status);
       else setTimeout(function() { m.el.classList.add(m.status); }, 250 + i * 140);
     });
   }
 
-  /* the marker lives in a group whose scale is countered on zoom, so it
-     keeps a constant on-screen size instead of swallowing texas */
+  /* the home marker is in a group. the group scales against the zoom, so the
+     marker keeps a constant size on the screen. */
   function drawHome(svg, xy) {
     if (!xy) return;
     var g = svgEl('g', {
@@ -677,7 +726,7 @@ document.documentElement.classList.add('js-ready');
       'data-x': xy[0], 'data-y': xy[1],
       transform: 'translate(' + xy[0] + ',' + xy[1] + ')'
     });
-    /* same five-point star as the cartouche's "you are here" */
+    /* a star with five points. */
     g.appendChild(svgEl('path', {
       'class': 'star',
       d: 'M0 -8 L2.4 -3 L7.8 -2.4 L3.8 1.4 L4.8 6.8 L0 4.2 L-4.8 6.8 L-3.8 1.4 L-7.8 -2.4 L-2.4 -3 Z',
@@ -715,7 +764,7 @@ document.documentElement.classList.add('js-ready');
     if (travelsFix.open) ensureMap(currentLevel);
   });
 
-  /* ---- countries / us states toggle ---- */
+  /* the countries and us states button. */
   var ttCountries = document.getElementById('tt-countries');
   var ttStates = document.getElementById('tt-states');
   function setLevel(name) {
@@ -730,8 +779,8 @@ document.documentElement.classList.add('js-ready');
       ttStates.setAttribute('aria-pressed', String(!world));
       mapTip.style.display = 'none';
     };
-    /* View Transitions are intentionally desktop-only: mobile engines can
-       snapshot an SVG's old hidden state and leave the replacement blank. */
+    /* use view transitions only on the desktop. some mobile engines record the
+       old hidden svg and show an empty swap. */
     if (!reduced && !coarsePointer && document.startViewTransition) document.startViewTransition(apply);
     else apply();
     ensureMap(name);
@@ -739,14 +788,14 @@ document.documentElement.classList.add('js-ready');
   ttCountries.addEventListener('click', function() { setLevel('countries'); });
   ttStates.addEventListener('click', function() { setLevel('states'); });
 
-  /* ---- zoom + pan (wheel, drag, buttons; viewBox-based) ---- */
+  /* zoom and pan with the wheel, a drag, or the buttons. this uses the viewBox. */
   function panZoom(svg, base) {
     var vb = { x: base[0], y: base[1], w: base[2], h: base[3] };
     var dragging = false, moved = false, sx, sy, ox, oy;
     function apply() {
       svg.setAttribute('viewBox', vb.x + ' ' + vb.y + ' ' + vb.w + ' ' + vb.h);
       svg.classList.toggle('zoomed', vb.w < base[2] - 0.5);
-      /* counter-scale the home marker so it stays a constant screen size */
+      /* scale the home marker against the zoom to keep a constant size. */
       var k = vb.w / base[2];
       svg.querySelectorAll('.home-mark').forEach(function(g) {
         g.setAttribute('transform', 'translate(' + g.getAttribute('data-x') + ',' +
@@ -775,7 +824,7 @@ document.documentElement.classList.add('js-ready');
     svg.addEventListener('dblclick', function(e) { zoomAt(e.clientX, e.clientY, 0.55); });
     svg.addEventListener('pointerdown', function(e) {
       moved = false;
-      if (!svg.classList.contains('zoomed')) return; /* pan only when zoomed */
+      if (!svg.classList.contains('zoomed')) return; /* pan only when the map is zoomed. */
       dragging = true;
       sx = e.clientX; sy = e.clientY; ox = vb.x; oy = vb.y;
     });
@@ -816,7 +865,7 @@ document.documentElement.classList.add('js-ready');
   document.getElementById('mz-out').addEventListener('click', function() { activeLevel().pz.zoom(1.45); });
   document.getElementById('mz-reset').addEventListener('click', function() { activeLevel().pz.reset(); });
 
-  /* ---- hover identification + field notes ---- */
+  /* hover identification and field notes. */
   travelmap.addEventListener('mousemove', function(e) {
     var name = e.target.getAttribute && e.target.getAttribute('data-name');
     if (!name) { mapTip.style.display = 'none'; return; }
@@ -851,8 +900,8 @@ document.documentElement.classList.add('js-ready');
     return hit && hit.entry.note ? hit.entry : null;
   }
 
-  /* Touch browsers do not consistently synthesize click/dblclick for SVG
-     paths. Treat a short pointer gesture as a tap and open the note directly. */
+  /* touch browsers do not always make a click or a double-click for svg paths.
+     use a short pointer gesture as a tap and open the note. */
   var touchStart = null;
   var suppressMapClickUntil = 0;
   travelmap.addEventListener('pointerdown', function(e) {
@@ -872,15 +921,14 @@ document.documentElement.classList.add('js-ready');
     if (touchStart && touchStart.id === e.pointerId) touchStart = null;
   });
 
-  /* a single click opens the note, but hold it ~220ms so a double-click
-     (zoom) can cancel it \u2014 otherwise dbl-clicking a noted state like
-     connecticut flashed the note open then zoomed out from under it */
+  /* a single click opens the note. delay it about 220 ms, so a double-click
+     (zoom) can stop it first. */
   var noteTimer = null;
   travelmap.addEventListener('click', function(e) {
     clearTimeout(noteTimer);
     if (performance.now() < suppressMapClickUntil) return;
-    if (e.detail > 1) return; /* wait for dblclick zoom to finish */
-    if (activeLevel().pz.consumeDrag()) return; /* a pan, not a click */
+    if (e.detail > 1) return; /* wait for the double-click zoom to complete. */
+    if (activeLevel().pz.consumeDrag()) return; /* this is a pan, not a click. */
     var entry = noteEntryFor(e.target);
     if (!entry) return;
     noteTimer = setTimeout(function() { showFieldNote(entry); }, 220);
@@ -890,7 +938,7 @@ document.documentElement.classList.add('js-ready');
     fieldNote.hidden = true;
   });
 
-  /* ---- digital passages: recent github activity (lazy, keyless API) ---- */
+  /* github activity. load on demand with a keyless api. */
   var digitalFix = document.getElementById('digital-fix');
   var ghLoaded = false;
   function ago(iso) {
@@ -956,12 +1004,12 @@ document.documentElement.classList.add('js-ready');
     if (digitalFix.open) loadDigital();
   });
 
-  /* ---- easter egg: typing a territory's name flashes it ---- */
+  /* easter egg. when you type a territory name, the map shows it quickly. */
   var eggNames = null;
   function travelEgg(buf) {
     if (!eggNames) {
-      /* states before countries so 'georgia' prefers the state;
-         longest names first so 'south korea' beats hypothetical suffixes */
+      /* put the states before the countries, so 'georgia' selects the state.
+         put the longest names first, so 'south korea' wins against shorter names. */
       eggNames = norm(VISITED_STATES).concat(norm(PLANNED_STATES))
         .map(function(t) { return { n: t.name.toLowerCase(), level: 'states' }; })
         .concat(norm(VISITED_COUNTRIES).concat(norm(PLANNED_COUNTRIES))
@@ -971,7 +1019,7 @@ document.documentElement.classList.add('js-ready');
     for (var i = 0; i < eggNames.length; i++) {
       var egg = eggNames[i];
       if (egg.n.length < 4 || buf.slice(-egg.n.length) !== egg.n) continue;
-      travelsFix.open = true; /* triggers the lazy build */
+      expandFix(travelsFix); /* expand and start the load. */
       setLevel(egg.level);
       var lvl = activeLevel();
       lvl.pz.reset();
@@ -991,7 +1039,7 @@ document.documentElement.classList.add('js-ready');
     }
     return false;
   }
-  /* ---- command palette ( / or ⌘K ) ---- */
+  /* command palette. open it with the / key or cmd+k. */
   (function helm() {
     var ov = document.getElementById('helm-overlay');
     var input = document.getElementById('helm-input');
@@ -1003,26 +1051,47 @@ document.documentElement.classList.add('js-ready');
       if (el) el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' });
     }
     var cmds = [
+      { name: 'back to top', aliases: 'home masthead', kind: 'navigate', run: function() { goTo('top'); } },
       { name: 'about', kind: 'section', run: function() { goTo('about'); } },
       { name: 'experience', kind: 'section', run: function() { goTo('experience'); } },
       { name: 'projects', kind: 'section', run: function() { goTo('projects'); } },
       { name: 'uni', kind: 'section', run: function() { goTo('uni'); } },
       { name: 'honors', kind: 'section', run: function() { goTo('honors'); } },
-      { name: 'travels', kind: 'section', run: function() { travelsFix.open = true; goTo('travels'); } },
-      { name: 'countries map', kind: 'map', run: function() { travelsFix.open = true; setLevel('countries'); goTo('travels'); } },
-      { name: 'us states map', kind: 'map', run: function() { travelsFix.open = true; setLevel('states'); goTo('travels'); } },
-      { name: 'clear mist', kind: 'action', run: function() { setMist(!mistOn); } },
-      { name: 'print', kind: 'action', run: function() { window.print(); } },
-      { name: 'copy email', kind: 'link', run: copyEmailToClipboard },
-      { name: 'open resume', kind: 'link', run: function() { window.open(RESUME, '_blank', 'noopener'); } },
-      { name: 'github', kind: 'link', run: function() { window.open('https://github.com/TaoTDM', '_blank', 'noopener'); } },
-      { name: 'linkedin', kind: 'link', run: function() { window.open('https://www.linkedin.com/in/shi-tao-chang/', '_blank', 'noopener'); } },
-      { name: 'rain', kind: 'secret', run: function() { overlay.classList.add('open'); } }
+      { name: 'travels', kind: 'section', run: function() { expandFix(travelsFix); goTo('travels'); } },
+      { name: 'digital passages', aliases: 'github activity recent', kind: 'section', run: function() { expandFix(digitalFix); goTo('travels'); } },
+      { name: 'theme: dawn', aliases: 'morning sunrise pink', kind: 'scene', run: function() { setTod('dawn'); } },
+      { name: 'theme: dusk', aliases: 'evening coast fog purple', kind: 'scene', run: function() { setTod('dusk'); } },
+      { name: 'theme: night', aliases: 'dark forest rain', kind: 'scene', run: function() { setTod('night'); } },
+      { name: 'next theme', aliases: 'cycle scene', kind: 'scene', run: function() {
+        var i = (TOD_ORDER.indexOf(currentTod) + 1) % TOD_ORDER.length;
+        setTod(TOD_ORDER[i]);
+      } },
+      { name: 'countries map', aliases: 'world international', kind: 'map', run: function() { expandFix(travelsFix); setLevel('countries'); goTo('travels'); } },
+      { name: 'us states map', aliases: 'america united states', kind: 'map', run: function() { expandFix(travelsFix); setLevel('states'); goTo('travels'); } },
+      { name: 'reset map view', aliases: 'map home zoom', kind: 'map', run: function() {
+        expandFix(travelsFix);
+        ensureMap(currentLevel).then(function() { if (activeLevel().pz) activeLevel().pz.reset(); });
+        goTo('travels');
+      } },
+      { name: 'toggle weather', aliases: 'mist rain dew', kind: 'weather', run: function() { setMist(!mistOn); } },
+      { name: 'show weather', aliases: 'enable rain fog dew', kind: 'weather', run: function() { if (!mistOn) setMist(true); } },
+      { name: 'clear weather', aliases: 'disable atmosphere', kind: 'weather', run: function() { if (mistOn) setMist(false); } },
+      { name: 'toggle ambience', aliases: 'sound audio', kind: 'sound', run: function() { setSound(!soundOn); } },
+      { name: 'sound on', aliases: 'play ambience audio', kind: 'sound', run: function() { if (!soundOn) setSound(true); } },
+      { name: 'mute sound', aliases: 'sound off silence', kind: 'sound', run: function() { if (soundOn) setSound(false); } },
+      { name: 'close field note', aliases: 'dismiss map note', kind: 'map', run: function() { fieldNote.hidden = true; } },
+      { name: 'print', aliases: 'paper pdf', kind: 'utility', run: function() { window.print(); } },
+      { name: 'copy email', aliases: 'mail contact', kind: 'link', run: copyEmailToClipboard },
+      { name: 'open resume', aliases: 'cv curriculum vitae', kind: 'link', run: function() { window.open(RESUME, '_blank', 'noopener'); } },
+      { name: 'github', aliases: 'code repositories', kind: 'link', run: function() { window.open('https://github.com/TaoTDM', '_blank', 'noopener'); } },
+      { name: 'linkedin', aliases: 'professional profile', kind: 'link', run: function() { window.open('https://www.linkedin.com/in/shi-tao-chang/', '_blank', 'noopener'); } }
     ];
     var matches = cmds.slice(), sel = 0;
     function render() {
       var q = input.value.trim().toLowerCase();
-      matches = cmds.filter(function(c) { return c.name.indexOf(q) !== -1; });
+      matches = cmds.filter(function(c) {
+        return (c.name + ' ' + (c.aliases || '')).indexOf(q) !== -1;
+      });
       if (sel >= matches.length) sel = Math.max(0, matches.length - 1);
       listEl.innerHTML = '';
       matches.forEach(function(c, i) {
@@ -1053,7 +1122,7 @@ document.documentElement.classList.add('js-ready');
         e.preventDefault();
         ov.classList.contains('open') ? closeHelm() : openHelm();
       } else if (e.key === '/' && !ov.classList.contains('open') &&
-                 e.target.tagName !== 'INPUT' && !overlay.classList.contains('open')) {
+                 e.target.tagName !== 'INPUT') {
         e.preventDefault();
         openHelm();
       }

@@ -6,44 +6,103 @@
 }
 
 :root {
-  /* cool graphite stone — dark gray, misty, one warm light */
-  --stone: #24292b;       /* lifted dark-gray ground / content sheet */
-  --stone-2: #2c3234;     /* raised panels / cards */
-  --deep: #14181a;        /* deepest shadow */
-  --ink: #e6e8e4;         /* prose text */
-  --ink-bright: #f2f4f0;  /* name / display headings */
-  --ink-dim: #a8b0ac;     /* secondary text */
-  --mist: #8a938f;        /* muted / data / fog */
-  --jade: #8fb6a3;        /* muted structural accent */
-  --water: #86b0b2;       /* links / taglines (cool teal) */
-  --forest: #33413a;      /* deep accent fills */
-  --glow: #e3a866;        /* warm amber light — RARE (lantern, hover/active, map home) */
-  --card-bg: rgba(143, 182, 163, 0.06);
-  --grid: rgba(143, 182, 163, 0.05);
-  --grid-major: rgba(143, 182, 163, 0.09);
+  /* night: wet charcoal, pine-black and one orange cabin light */
+  --stone: #101513;
+  --stone-2: #18201c;
+  --deep: #080b09;
+  --ink: #dfe4e0;
+  --ink-bright: #f1f3ef;
+  --ink-dim: #a5afa9;
+  --mist: #77847d;
+  --jade: #829b8d;
+  --water: #78938d;
+  --forest: #29362f;
+  --glow: #e59a4d;
+  --lantern: 229, 145, 67;
+  --fog-rgb: 172, 185, 178;
+  --card-bg: rgba(130, 155, 141, 0.06);
+  --grid: rgba(120, 147, 141, 0.045);
+  --grid-major: rgba(130, 155, 141, 0.09);
+  --scroll-track: #090d0b;
+  --scroll-thumb: #53665c;
+  --scroll-thumb-hover: #e59a4d;
   --serif: "Cormorant Garamond", Georgia, serif;   /* display */
   --serif-text: "Spectral", Georgia, serif;         /* prose */
-  /* time-of-day grade over the hero scene (default = night; dawn/dusk below) */
-  --grade-top: rgba(24, 30, 32, 0.34);
-  --grade-bot: rgba(12, 16, 17, 0.88);
-  --warm: rgba(227, 168, 102, 0);
+  /* the time-of-day grade. night is the default. dawn and dusk change it below. */
+  --grade-top: rgba(23, 32, 28, 0.26);
+  --grade-bot: rgba(6, 10, 8, 0.90);
+  --warm: rgba(229, 154, 77, 0.035);
+  /* the hero softness. js crossfades the two image layers. */
+  --hero-blur: 3px;
 }
-/* dawn — pale, cool, foggy morning */
+/* dawn: alpenglow pink, glacier blue and wet graphite */
 html[data-tod="dawn"] {
-  --grade-top: rgba(150, 165, 172, 0.12);
-  --grade-bot: rgba(28, 38, 42, 0.74);
-  --warm: rgba(206, 188, 156, 0.05);
+  --grade-top: rgba(134, 151, 173, 0.10);
+  --grade-bot: rgba(23, 29, 39, 0.76);
+  --warm: rgba(230, 154, 164, 0.055);
+  --stone: #20262d;
+  --stone-2: #2a323b;
+  --deep: #11161d;
+  --ink: #e8e8ec;
+  --ink-bright: #f7f4f6;
+  --ink-dim: #b1b6c2;
+  --mist: #8c99ad;
+  --jade: #d2a0ae;
+  --water: #96b6d0;
+  --forest: #384553;
+  --glow: #efb0a1;
+  --lantern: 232, 164, 176;
+  --fog-rgb: 181, 198, 213;
+  --card-bg: rgba(150, 182, 208, 0.07);
+  --grid: rgba(150, 182, 208, 0.045);
+  --grid-major: rgba(210, 160, 174, 0.095);
+  --scroll-track: #171d25;
+  --scroll-thumb: #92abc2;
+  --scroll-thumb-hover: #efb0a1;
 }
-/* dusk — the warm-window hour */
+/* dusk: lifted storm blue, rain gray and pale maritime lavender */
 html[data-tod="dusk"] {
-  --grade-top: rgba(64, 46, 38, 0.22);
-  --grade-bot: rgba(18, 15, 15, 0.84);
-  --warm: rgba(227, 150, 92, 0.13);
+  --grade-top: rgba(126, 139, 169, 0.15);
+  --grade-bot: rgba(30, 37, 51, 0.72);
+  --warm: rgba(0, 0, 0, 0);
+  --stone: #29303d;
+  --stone-2: #343c4b;
+  --deep: #171d27;
+  --ink: #e7e9ef;
+  --ink-bright: #f1f2f8;
+  --ink-dim: #b4b9c8;
+  --mist: #949db2;
+  --jade: #b2aacb;
+  --water: #9ab7cd;
+  --forest: #465063;
+  --glow: #c8b9dc;
+  --lantern: 190, 184, 218;
+  --fog-rgb: 174, 183, 207;
+  --card-bg: rgba(154, 183, 205, 0.075);
+  --grid: rgba(154, 183, 205, 0.05);
+  --grid-major: rgba(178, 170, 203, 0.105);
+  --scroll-track: #202633;
+  --scroll-thumb: #8988a4;
+  --scroll-thumb-hover: #c8b9dc;
 }
-
 * { box-sizing: border-box; margin: 0; padding: 0; }
 [hidden] { display: none !important; }
 
+html {
+  scroll-behavior: smooth;
+  scrollbar-color: var(--scroll-thumb) var(--scroll-track);
+  scrollbar-width: thin;
+}
+html::-webkit-scrollbar { width: 10px; }
+html::-webkit-scrollbar-track { background: var(--scroll-track); }
+html::-webkit-scrollbar-thumb {
+  min-height: 44px;
+  background: var(--scroll-thumb);
+  border: 3px solid var(--scroll-track);
+  border-radius: 999px;
+}
+html::-webkit-scrollbar-thumb:hover { background: var(--scroll-thumb-hover); }
+html::-webkit-scrollbar-corner { background: var(--scroll-track); }
 html, body {
   background: var(--stone);
   color: var(--ink);
@@ -51,6 +110,11 @@ html, body {
   font-size: 12.5px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
+  /* change the base color slowly when the theme palette changes. */
+  transition: background-color 0.85s ease, color 0.85s ease;
+  /* prevent the horizontal scroll. use clip, not hidden, to keep the sticky and smooth scroll. */
+  overflow-x: hidden;
+  overflow-x: clip;
 }
 body {
   min-height: 100vh;
@@ -59,31 +123,31 @@ body {
 
 ::selection { background: var(--jade); color: var(--deep); }
 
-/* ================= the scene (fixed layers behind everything) ================= *
- * back → front: hero photo · dark-gray grade · drifting mist · rain ·
- * cursor lantern · grain. none take pointer events. mist/rain/grain gated
- * by the [mist] toggle; the photo + grade + lantern always remain. */
+/* the fixed background layers, from back to front: photo, grade, mist, rain,
+   lantern, grain. all have pointer-events none. the [mist] control sets the
+   mist, rain, and grain to off. */
 
-/* hero photograph (user-supplied images/hero.jpg) with a graphite fallback */
+/* the two photo layers crossfade. the negative inset hides the blur edge. */
 .hero-bg {
   position: fixed;
-  inset: 0;
+  inset: -40px;
   z-index: 0;
   pointer-events: none;
   background-color: var(--deep);
-  /* drop your photo at images/hero.webp (or .jpg / .png). whichever exists wins;
-     if none is present the graphite gradient below shows as a graceful fallback. */
-  background-image:
-    url("/images/hero.webp"),
-    url("/images/hero.jpg"),
-    url("/images/hero.png"),
-    linear-gradient(180deg, #2c3335 0%, #212829 46%, #161a1b 100%);
-  background-size: cover, cover, cover, cover;
-  background-position: center 32%, center 32%, center 32%, center;
+  background-size: cover;
+  background-position: center;
   background-repeat: no-repeat;
+  filter: blur(var(--hero-blur));
+  opacity: 0;
+  will-change: opacity;
+  transition: opacity 1.15s cubic-bezier(.4, 0, .2, 1), filter 0.6s ease;
 }
+.hero-bg.is-active { opacity: 1; }
+.hero-bg[data-scene="dawn"] { background-image: url("/images/pnw-cascade-dawn-alpenglow-bg.webp"); }
+.hero-bg[data-scene="dusk"] { background-image: url("/images/pnw-coast-dusk-mist-cliff-bg.webp"); }
+.hero-bg[data-scene="night"] { background-image: url("/images/pnw-forest-night-inset-bg.webp"); }
 
-/* dark-gray grade + time-of-day tint that unifies any photo into the palette */
+/* grade + time-of-day tint */
 .scene-grade {
   position: fixed;
   inset: 0;
@@ -92,33 +156,35 @@ body {
   background:
     radial-gradient(70% 48% at 50% 24%, var(--warm), transparent 72%),
     linear-gradient(180deg, var(--grade-top) 0%, transparent 34%, var(--grade-bot) 100%);
-  transition: background 0.8s ease;
+  transition: background 1s ease;
 }
 
-/* drifting mist — emphasised: several soft, slow, layered fog banks */
+/* the atmospheric banks that move. each scene changes their density and position. */
 .mist {
   position: fixed;
   inset: -25% -15%;
   z-index: 0;
   pointer-events: none;
   will-change: transform;
+  opacity: 1;
+  transition: opacity 0.8s ease;
 }
 .mist-far {
   background:
-    radial-gradient(60% 42% at 20% 34%, rgba(176, 190, 188, 0.10), transparent 68%),
-    radial-gradient(56% 40% at 82% 52%, rgba(150, 168, 166, 0.09), transparent 70%);
+    radial-gradient(60% 42% at 20% 34%, rgba(var(--fog-rgb), 0.10), transparent 68%),
+    radial-gradient(56% 40% at 82% 52%, rgba(var(--fog-rgb), 0.09), transparent 70%);
   animation: drift-far 58s ease-in-out infinite alternate;
 }
 .mist-near {
   background:
-    radial-gradient(50% 34% at 66% 26%, rgba(196, 208, 205, 0.09), transparent 66%),
-    radial-gradient(60% 40% at 28% 66%, rgba(168, 184, 181, 0.11), transparent 70%);
+    radial-gradient(50% 34% at 66% 26%, rgba(var(--fog-rgb), 0.09), transparent 66%),
+    radial-gradient(60% 40% at 28% 66%, rgba(var(--fog-rgb), 0.11), transparent 70%);
   animation: drift-near 42s ease-in-out infinite alternate;
 }
 .mist-low {
   background:
-    linear-gradient(0deg, rgba(188, 200, 198, 0.12) 0%, rgba(180, 194, 191, 0.05) 22%, transparent 46%),
-    radial-gradient(80% 34% at 50% 100%, rgba(200, 212, 210, 0.10), transparent 70%);
+    linear-gradient(0deg, rgba(var(--fog-rgb), 0.12) 0%, rgba(var(--fog-rgb), 0.05) 22%, transparent 46%),
+    radial-gradient(80% 34% at 50% 100%, rgba(var(--fog-rgb), 0.10), transparent 70%);
   animation: drift-low 34s ease-in-out infinite alternate;
 }
 @keyframes drift-far {
@@ -134,25 +200,85 @@ body {
   to   { transform: translate3d(4%, 0, 0); }
 }
 
-#rain {
+/* each image has its own weather effect. */
+html[data-weather="dew"] .mist { opacity: 0.34; }
+html[data-weather="rain"] .mist { opacity: 0.50; }
+html[data-weather="fog"] .mist { opacity: 1; }
+
+/* the dusk fog moves in separate coastal bands. then the soft overlaps do not flare. */
+html[data-tod="dusk"][data-weather="fog"] .mist {
+  inset: 0 -10%;
+  mix-blend-mode: normal;
+  transform: translate3d(0, 0, 0);
+  backface-visibility: hidden;
+}
+html[data-tod="dusk"][data-weather="fog"] .mist-far {
+  opacity: 0.40;
+  background:
+    radial-gradient(ellipse 58% 24% at 14% 42%, rgba(var(--fog-rgb), 0.16), rgba(var(--fog-rgb), 0.055) 52%, transparent 78%),
+    radial-gradient(ellipse 52% 22% at 72% 39%, rgba(var(--fog-rgb), 0.13), rgba(var(--fog-rgb), 0.045) 50%, transparent 78%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 18%, #000 30%, #000 54%, transparent 66%);
+  mask-image: linear-gradient(to bottom, transparent 18%, #000 30%, #000 54%, transparent 66%);
+  animation: coast-fog-far 82s ease-in-out infinite alternate;
+}
+html[data-tod="dusk"][data-weather="fog"] .mist-near {
+  opacity: 0.54;
+  background:
+    radial-gradient(ellipse 34% 12% at 8% 60%, rgba(var(--fog-rgb), 0.19), rgba(var(--fog-rgb), 0.06) 54%, transparent 80%),
+    radial-gradient(ellipse 42% 14% at 48% 57%, rgba(var(--fog-rgb), 0.17), rgba(var(--fog-rgb), 0.055) 52%, transparent 80%),
+    radial-gradient(ellipse 30% 12% at 91% 55%, rgba(var(--fog-rgb), 0.14), rgba(var(--fog-rgb), 0.04) 54%, transparent 82%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 39%, #000 49%, #000 68%, transparent 78%);
+  mask-image: linear-gradient(to bottom, transparent 39%, #000 49%, #000 68%, transparent 78%);
+  animation: coast-fog-near 68s ease-in-out infinite alternate;
+}
+html[data-tod="dusk"][data-weather="fog"] .mist-low {
+  opacity: 0.44;
+  background:
+    radial-gradient(ellipse 38% 13% at 9% 76%, rgba(var(--fog-rgb), 0.15), rgba(var(--fog-rgb), 0.045) 55%, transparent 82%),
+    radial-gradient(ellipse 46% 15% at 57% 72%, rgba(var(--fog-rgb), 0.13), rgba(var(--fog-rgb), 0.04) 54%, transparent 82%),
+    radial-gradient(ellipse 27% 16% at 100% 67%, rgba(var(--fog-rgb), 0.17), rgba(var(--fog-rgb), 0.05) 50%, transparent 80%);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 57%, #000 67%, #000 88%, transparent 98%);
+  mask-image: linear-gradient(to bottom, transparent 57%, #000 67%, #000 88%, transparent 98%);
+  animation: coast-fog-low 56s ease-in-out infinite alternate;
+}
+
+@keyframes coast-fog-far {
+  from { transform: translate3d(-2%, 0, 0); }
+  to   { transform: translate3d(2%, 0, 0); }
+}
+@keyframes coast-fog-near {
+  from { transform: translate3d(-1%, 0, 0); }
+  to   { transform: translate3d(3%, 0, 0); }
+}
+@keyframes coast-fog-low {
+  from { transform: translate3d(-1.5%, 0, 0); }
+  to   { transform: translate3d(2.5%, 0, 0); }
+}
+
+#weather-canvas {
   position: fixed;
   inset: 0;
   z-index: 0;
   pointer-events: none;
+  opacity: 0.82;
+  transition: opacity 0.34s ease;
 }
+#weather-canvas.is-changing { opacity: 0 !important; }
+html:not([data-weather="rain"]):not([data-weather="dew"]) #weather-canvas { opacity: 0; }
 
-/* cursor lantern — the one warm light, moved by the pointer (JS sets --lx/--ly) */
+/* the cursor lantern. js sets --lx and --ly. */
 .lantern {
   position: fixed;
   inset: 0;
   z-index: 3;
   pointer-events: none;
   background: radial-gradient(240px 240px at var(--lx, 50%) var(--ly, 26%),
-    rgba(231, 176, 112, 0.12), rgba(231, 176, 112, 0.04) 46%, transparent 68%);
+    rgba(var(--lantern), 0.12), rgba(var(--lantern), 0.04) 46%, transparent 68%);
   mix-blend-mode: screen;
+  transition: background 0.9s ease;
 }
 
-/* faint cinematic film grain (inline SVG turbulence, CSP-safe) */
+/* film grain (inline svg turbulence) */
 .grain {
   position: fixed;
   inset: 0;
@@ -164,12 +290,12 @@ body {
   background-size: 140px 140px;
 }
 
-/* the [mist] toggle stills the weather (photo, grade & lantern stay) */
-html[data-mist="off"] #rain,
+/* weather off. keep the photo, the grade, and the cursor light. */
+html[data-mist="off"] #weather-canvas,
 html[data-mist="off"] .mist,
 html[data-mist="off"] .grain { display: none; }
 
-/* minimal scroll-progress tick on the left edge */
+/* scroll-progress tick, left edge */
 #lat-marker {
   position: fixed;
   left: 0;
@@ -183,7 +309,7 @@ html[data-mist="off"] .grain { display: none; }
   transition: top 0.1s linear;
 }
 
-/* ================= fixed top bar ================= */
+/* top bar */
 .topbar {
   position: fixed;
   top: 0; left: 0; right: 0;
@@ -198,7 +324,7 @@ html[data-mist="off"] .grain { display: none; }
   letter-spacing: 1px;
   color: var(--ink-dim);
   background: linear-gradient(180deg, rgba(12, 15, 16, 0.55), transparent);
-  pointer-events: none;   /* let the hero breathe; re-enable on the controls */
+  pointer-events: none;   /* the controls below have pointer events again. */
 }
 .topbar a, .topbar button, .topbar .tod { pointer-events: auto; }
 .brand {
@@ -216,17 +342,69 @@ html[data-mist="off"] .grain { display: none; }
   border-bottom: none;
 }
 .topnav a:hover, .topnav button.text-control:hover { color: var(--glow); border-bottom: none; }
+/* the time-of-day pill. the jade highlight moves between the icons. */
 .tod {
+  position: relative;
   display: inline-flex;
-  gap: 10px;
-  padding-left: 14px;
-  border-left: 1px solid rgba(255, 255, 255, 0.14);
+  align-items: center;
+  gap: 1px;
+  margin-left: 6px;
+  padding: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: ns-resize;   /* scroll to change it. */
 }
-.tod-btn { color: var(--ink-dim); border-bottom: none; }
-.tod-btn:hover { color: var(--glow); border-bottom: none; }
-.tod-btn.on { color: var(--jade); }
+.tod-slider {
+  position: absolute;
+  top: 3px; left: 3px;
+  height: calc(100% - 6px);
+  width: 26px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--jade) 20%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--jade) 40%, transparent);
+  opacity: 0;
+  transition: transform 0.34s cubic-bezier(.34, 1.2, .3, 1), width 0.2s ease, opacity 0.3s;
+  pointer-events: none;
+}
+.tod-btn {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 22px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: none;
+  border-bottom: none;
+  background: none;
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+  filter: grayscale(0.5) opacity(0.55);
+  transition: filter 0.25s ease, transform 0.2s ease;
+}
+.tod-btn:hover { filter: grayscale(0) opacity(0.95); transform: translateY(-1px); }
+.tod-btn.on { filter: grayscale(0) opacity(1); }
 
-/* ================= cinematic hero ================= */
+/* icon buttons (mist / sound) */
+.icon-btn {
+  appearance: none;
+  border: none;
+  border-bottom: none;
+  background: none;
+  cursor: pointer;
+  padding: 0 1px;
+  font-size: 14px;
+  line-height: 1;
+  filter: grayscale(0.35) opacity(0.8);
+  transition: filter 0.2s ease, transform 0.2s ease;
+}
+.icon-btn:hover { filter: grayscale(0) opacity(1); transform: translateY(-1px); }
+.icon-btn[aria-pressed="false"] { filter: grayscale(0.7) opacity(0.6); }
+
+/* hero */
 .hero {
   position: relative;
   z-index: 1;
@@ -247,6 +425,7 @@ html[data-mist="off"] .grain { display: none; }
   color: var(--jade);
   font-family: "Maple Mono", monospace;
   margin-bottom: 20px;
+  transition: color 0.6s ease;
 }
 .hero .chart-title {
   font-family: var(--serif);
@@ -276,14 +455,18 @@ html[data-mist="off"] .grain { display: none; }
   text-transform: lowercase;
 }
 .hero .chart-coords b { color: var(--jade); font-weight: normal; }
+.hero .chart-title, .hero .chart-sub, .hero .chart-coords,
+.hero .chart-coords b { transition: color 0.6s ease; }
 .scroll-cue {
   position: absolute;
-  bottom: 26px; left: 50%;
-  transform: translateX(-50%);
+  bottom: 26px;
+  left: 0; right: 0;
+  margin-inline: auto;
+  width: max-content;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--ink-dim);
   border-bottom: none;
   text-transform: lowercase;
@@ -292,20 +475,50 @@ html[data-mist="off"] .grain { display: none; }
   font-family: "Maple Mono", monospace;
 }
 .scroll-cue:hover { color: var(--jade); border-bottom: none; }
-.cue-arrow { font-size: 16px; animation: cue-bob 2.2s ease-in-out infinite; }
-@keyframes cue-bob {
-  0%, 100% { transform: translateY(0); opacity: 0.5; }
-  50%      { transform: translateY(6px); opacity: 1; }
+.scroll-cue .cue-word { opacity: 0.72; transition: opacity 0.3s, letter-spacing 0.3s; }
+.scroll-cue:hover .cue-word { opacity: 1; letter-spacing: 4px; }
+/* the raindrop falls and fades. */
+.cue-arrow {
+  font-size: 15px;
+  line-height: 1;
+  animation: cue-drip 1.9s cubic-bezier(.55, 0, .55, 1) infinite;
+}
+.scroll-cue:hover .cue-arrow { animation-duration: 1.2s; }
+@keyframes cue-drip {
+  0%   { transform: translateY(-5px); opacity: 0; }
+  30%  { opacity: 1; }
+  75%  { transform: translateY(8px); opacity: 0.9; }
+  100% { transform: translateY(14px); opacity: 0; }
 }
 
-/* ================= content sheet + column ================= */
+/* the hero enters in steps. the .js-ready class controls it, so a page with no js shows immediately. */
+.js-ready .hero-inner > *,
+.js-ready .scroll-cue {
+  opacity: 0;
+  animation: hero-rise 0.9s cubic-bezier(.2, .7, .2, 1) forwards;
+}
+.js-ready .hero .chart-no    { animation-delay: 0.15s; }
+.js-ready .hero .chart-title { animation-delay: 0.30s; }
+.js-ready .hero .chart-sub   { animation-delay: 0.55s; }
+.js-ready .hero .chart-coords { animation-delay: 0.72s; }
+.js-ready .scroll-cue        { animation-delay: 1s; }
+@keyframes hero-rise {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* content sheet + column */
 main#main {
   position: relative;
   z-index: 1;
   background:
-    linear-gradient(180deg, color-mix(in srgb, var(--stone) 80%, transparent) 0, var(--stone) 200px);
+    linear-gradient(180deg,
+      color-mix(in srgb, var(--stone) 64%, transparent) 0,
+      color-mix(in srgb, var(--stone) 82%, transparent) 220px,
+      color-mix(in srgb, var(--stone) 86%, transparent) 100%);
   border-top: 1px solid rgba(255, 255, 255, 0.06);
-  box-shadow: 0 -30px 70px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 -30px 70px rgba(0, 0, 0, 0.38);
+  transition: background 0.9s ease, border-color 0.9s ease, box-shadow 0.9s ease;
 }
 .column {
   max-width: 760px;
@@ -313,7 +526,7 @@ main#main {
   padding: 76px 28px 130px 40px;
 }
 
-/* section divider — a thin misted rule with a jade node */
+/* section divider */
 .divider {
   position: relative;
   height: 1px;
@@ -322,6 +535,7 @@ main#main {
   max-width: 340px;
   background: linear-gradient(90deg, transparent, var(--mist), transparent);
   opacity: 0.5;
+  transition: background 0.8s ease;
 }
 .divider::after {
   content: "";
@@ -330,9 +544,10 @@ main#main {
   width: 5px; height: 5px;
   transform: translate(-50%, -50%) rotate(45deg);
   background: var(--jade);
+  transition: background-color 0.8s ease;
 }
 
-/* ================= plates (sections) ================= */
+/* plates (sections) */
 .plate {
   display: grid;
   grid-template-columns: 132px 1fr;
@@ -344,6 +559,7 @@ main#main {
   text-align: right;
   border-right: 2px solid var(--jade);
   padding-right: 14px;
+  transition: border-color 0.8s ease;
 }
 .plate-label .num {
   display: block;
@@ -371,7 +587,7 @@ main#main {
 .plate-body { text-align: left; min-width: 0; }
 .plate-body > p { margin-bottom: 10px; max-width: 52ch; }
 
-/* reveal on scroll */
+/* show on scroll. */
 .reveal { opacity: 1; transform: none; }
 .js-ready .reveal {
   opacity: 0;
@@ -400,7 +616,7 @@ button.text-control {
 }
 button.text-control:hover { color: var(--jade); border-bottom-color: var(--jade); }
 
-/* ================= soundings (entry rows) ================= */
+/* entry rows (accordions) */
 details.fix { margin: 2px 0; }
 details.fix summary {
   list-style: none;
@@ -417,7 +633,7 @@ details.fix summary .mark {
   transition: transform 0.3s ease;
   display: inline-block;
 }
-details.fix[open] summary .mark { transform: rotate(90deg); }
+details.fix[data-x] summary .mark { transform: rotate(90deg); }
 details.fix summary .idx {
   color: var(--mist);
   font-size: 10px;
@@ -445,6 +661,10 @@ details.fix summary .ext {
   font-size: 10.5px;
 }
 
+/* the details stay open in the dom, so print always has the content. the
+   [data-x] attribute controls the collapse, and only after js loads. then a
+   page with no js still works. */
+.js-ready details.fix:not([data-x]) > .log { display: none; }
 .log {
   border-left: 2px solid var(--jade);
   background: var(--card-bg);
@@ -471,7 +691,7 @@ details.fix summary .ext {
 .plainrow { margin: 4px 0; text-transform: lowercase; }
 .plainrow .idx { color: var(--mist); font-size: 10px; margin-right: 8px; }
 
-/* ================= travel chart (plate vi) ================= */
+/* travel map (plate vi) */
 .log.travel-log { max-width: none; }
 .travel-stamp {
   display: flex;
@@ -505,8 +725,7 @@ details.fix summary .ext {
   stroke: var(--mist);
   stroke-width: 0.6;
   transition: fill 0.2s, stroke 0.2s;
-  /* hit-test the whole territory, not just its hairline stroke —
-     fill:none shapes are otherwise only hoverable on the border */
+  /* a fill:none shape hovers only on its stroke. force a full-area hit-test. */
   pointer-events: all;
   touch-action: manipulation;
   vector-effect: non-scaling-stroke;
@@ -565,7 +784,7 @@ details.fix summary .ext {
 .travelmap svg.zoomed { touch-action: none; cursor: grab; }
 .travelmap svg.panning { cursor: grabbing; }
 
-/* territories develop like a print when the plate first opens */
+/* noted / planned territory states */
 .travelmap .terr.noted { cursor: pointer; }
 .travelmap .terr.planned {
   fill: var(--planned-fill);
@@ -578,7 +797,7 @@ details.fix summary .ext {
   50% { fill: var(--water); stroke: var(--water); }
 }
 
-/* home marker: star */
+/* home marker */
 .travelmap .home-mark { pointer-events: none; }
 .travelmap .home-mark .star {
   fill: var(--jade);
@@ -587,7 +806,7 @@ details.fix summary .ext {
   stroke-linejoin: round;
 }
 
-/* field note card (click a charted territory) */
+/* field note card (click a territory) */
 .field-note { margin: 10px 0 2px; }
 .field-note .stamp {
   display: flex;
@@ -598,7 +817,7 @@ details.fix summary .ext {
 .field-note .stamp button:hover { color: var(--ink); }
 .field-note p { margin: 0; }
 
-/* passage rows */
+/* list rows (travel legend + github) */
 .lb-clock { text-transform: lowercase; letter-spacing: 0; }
 .lb-row {
   display: flex;
@@ -617,7 +836,7 @@ details.fix summary .ext {
 }
 .lb-row .yr { color: var(--mist); font-size: 10.5px; }
 
-/* ================= legend / footer ================= */
+/* legend / footer */
 .legend {
   border: 1px solid color-mix(in srgb, var(--mist) 34%, transparent);
   border-radius: 8px;
@@ -651,65 +870,55 @@ details.fix summary .ext {
 }
 .colophon .flourish { color: var(--jade); font-style: normal; }
 
-/* ================= compass rose ================= */
-#compass {
+/* scroll-spy rail */
+.spy {
   position: fixed;
-  right: 26px;
-  bottom: 52px;
+  left: 22px;
+  top: 50%;
+  transform: translateY(-50%);
   z-index: 60;
-  opacity: 0.9;
-  pointer-events: none;
-}
-#compass circle, #compass line { stroke: color-mix(in srgb, var(--mist) 70%, transparent); fill: none; }
-#compass text {
-  font-family: "Maple Mono", monospace;
-  font-size: 8px;
-  fill: var(--mist);
-}
-#compass text.north { fill: var(--jade); }
-#wind-ring {
-  transform-box: view-box;
-  transform-origin: 45px 45px;
-  transition: transform 1.4s cubic-bezier(.2,.7,.2,1), opacity 0.5s;
-}
-#wind-ring .wind-orbit {
-  stroke: var(--water);
-  stroke-width: 0.7;
-  stroke-dasharray: 1.5 4;
-  opacity: 0.65;
-}
-#wind-ring .wind-arrow {
-  fill: var(--water);
-  stroke: none;
-}
-/* rotation is driven every frame by a JS spring (see script), not CSS,
-   so it can overshoot and settle like a real pendulum */
-#needle { transform-origin: 45px 45px; }
-#needle .n-half { fill: var(--jade); }
-#needle .s-half { fill: var(--stone); stroke: var(--ink); stroke-width: 0.6; }
-
-/* ================= status bar ================= */
-#statusbar {
-  position: fixed;
-  left: 0; right: 0; bottom: 0;
-  z-index: 70;
-  background: color-mix(in srgb, var(--stone) 82%, transparent);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border-top: 1px solid color-mix(in srgb, var(--mist) 28%, transparent);
   display: flex;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 5px 14px 5px 22px;
-  font-size: 10.5px;
-  letter-spacing: 1px;
-  color: var(--mist);
+  flex-direction: column;
+  gap: 4px;
 }
-#statusbar .pos b { color: var(--water); font-weight: normal; }
-#statusbar .mid { color: var(--mist); }
-#statusbar .tick { color: var(--jade); }
+.spy a {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: none;
+  color: var(--mist);
+  text-transform: lowercase;
+  letter-spacing: 1px;
+  padding: 2px 0;
+}
+.spy a i {
+  font-family: var(--serif);
+  font-style: normal;
+  font-size: 13px;
+  width: 24px;
+  text-align: right;
+  color: var(--mist);
+  opacity: 0.6;
+  transition: color 0.25s, opacity 0.25s;
+}
+.spy a span {
+  font-family: "Maple Mono", monospace;
+  font-size: 9.5px;
+  color: var(--ink-dim);
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: max-width 0.3s ease, opacity 0.25s ease, transform 0.3s ease;
+}
+.spy a:hover i { opacity: 1; color: var(--ink); }
+.spy a:hover span,
+.spy:hover a.on span { max-width: 120px; opacity: 1; transform: none; }
+.spy a.on i { color: var(--jade); opacity: 1; }
+.spy a.on span { color: var(--jade); }
 
-/* ================= rain inset ================= */
+/* rain inset (easter egg) */
 .overlay {
   display: none;
   position: fixed;
@@ -770,7 +979,7 @@ details.fix summary .ext {
 /* copied toast */
 #toast {
   position: fixed;
-  bottom: 44px;
+  bottom: 18px;
   left: 50%;
   transform: translate(-50%, 8px);
   background: var(--stone-2);
@@ -788,7 +997,7 @@ details.fix summary .ext {
 }
 #toast.show { opacity: 1; transform: translate(-50%, 0); }
 
-/* ================= accessibility ================= */
+/* accessibility */
 .skip-link {
   position: fixed;
   top: 8px; left: 20px;
@@ -807,10 +1016,10 @@ details.fix summary .ext {
   outline: 2px solid var(--water);
   outline-offset: 2px;
 }
-/* view-transition morph on the countries/states swap */
+/* view-transition on the countries/states swap */
 .travelmap { view-transition-name: travelmap; }
 
-/* ================= command palette (ship's helm) ================= */
+/* command palette */
 #helm-overlay { align-items: flex-start; }
 #helm {
   background: var(--stone-2);
@@ -863,16 +1072,17 @@ details.fix summary .ext {
   letter-spacing: 1px;
 }
 
-/* ================= digital passages (github) ================= */
+/* github activity */
 #gh-rows .lb-row .yr { min-width: 0; }
 #gh-status { color: var(--mist); }
 #gh-rows a { border-bottom: none; }
 
-/* ================= responsive ================= */
+/* responsive */
 @media (max-width: 640px) {
-  #lat-marker, #compass { display: none; }
+  #lat-marker, .spy { display: none; }
   .column { padding: 48px 18px 90px; }
-  .topbar { padding: 12px 16px; font-size: 10px; gap: 8px; }
+  .topbar { padding: 12px 14px; font-size: 10px; gap: 8px; }
+  .topnav { gap: 11px; }
   .topnav { gap: 12px; }
   .tod { gap: 8px; padding-left: 10px; }
   .hero { padding: 84px 20px 80px; }
@@ -888,7 +1098,6 @@ details.fix summary .ext {
     gap: 10px;
   }
   .plate-label .obs { margin-left: auto; }
-  #statusbar .pos { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -897,27 +1106,31 @@ details.fix summary .ext {
     animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
   }
+  html { scroll-behavior: auto; }
   .reveal { opacity: 1; transform: none; }
+  .hero-inner > *, .scroll-cue { opacity: 1 !important; }
   .mist { animation: none !important; }
   .cue-arrow { animation: none !important; }
 }
 
-/* ================= print: legible ink on white paper ================= */
+/* print: dark ink on white */
 @media print {
   @page { margin: 14mm; }
-  /* force dark inks on white and actually print them (browsers drop
-     backgrounds/colours by default — this is what made prints look blank) */
-  html {
-    --jade: #1f7a5e;
+  /* use :root, not html, to win against the base palette. if not, the light
+     text wins on specificity and prints too light. */
+  :root {
+    --jade: #1c6b50;
     --water: #1c6f8c;
-    --ink: #1a1e20;
+    --ink: #14181a;
     --ink-bright: #000000;
+    --ink-dim: #3a4340;
+    --mist: #4c5652;
     --stone: #ffffff;
     --stone-2: #ffffff;
-    --mist: #5c6663;
+    --deep: #000000;
     --grid: transparent;
     --grid-major: transparent;
-    --card-bg: rgba(31,122,94,0.05);
+    --card-bg: rgba(28,107,80,0.06);
   }
   html, body {
     -webkit-print-color-adjust: exact;
@@ -925,24 +1138,42 @@ details.fix summary .ext {
     background: #fff !important;
     font-size: 11px;
   }
-  /* every fixed/floating fixture and interactive-only chrome is dropped */
-  .hero-bg, .scene-grade, .mist, .lantern, .grain, #rain,
-  #lat-marker, #compass, #statusbar, .topbar, .scroll-cue,
-  #overlay, #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
-  .travel-toggle { display: none !important; }
-  .hero { min-height: 0 !important; padding: 0 0 12mm !important; page-break-after: avoid; }
-  .hero .chart-title { font-size: 34px !important; color: #000 !important; text-shadow: none !important; }
+  /* remove the atmosphere and the interactive controls. */
+  .hero-bg, .scene-grade, .mist, .lantern, .grain, #weather-canvas,
+  #lat-marker, .topbar, .scroll-cue, .spy,
+  #helm-overlay, #toast, .map-ctl, #map-tip, .skip-link,
+  .travel-toggle, .travelmap, #gh-rows, #digital-fix { display: none !important; }
+  /* the hero becomes a compact header. put the name on one line. */
+  .hero {
+    min-height: 0 !important; height: auto !important;
+    display: block !important; text-align: left !important;
+    padding: 0 0 7mm !important;
+    break-after: avoid; page-break-after: avoid;
+  }
+  .hero-inner { max-width: none !important; }
+  .hero .chart-no { color: var(--jade) !important; margin-bottom: 4px !important; }
+  .hero .chart-title {
+    font-size: 28px !important; line-height: 1 !important;
+    color: #000 !important; text-shadow: none !important; margin: 0 0 4px !important;
+  }
+  .hero .chart-title span { display: inline !important; }
+  .hero .chart-title span + span::before { content: " "; }
+  .hero .chart-sub { font-size: 13px !important; margin-bottom: 2px !important; text-shadow: none !important; }
   main#main { box-shadow: none !important; border-top: none !important; background: #fff !important; }
   .column { max-width: none !important; padding: 0 !important; margin: 0 !important; }
-  /* undo scroll-reveal so nothing is invisible on paper */
+  /* cancel the reveal and the stagger, so all content prints. */
   .reveal { opacity: 1 !important; transform: none !important; }
-  /* open every collapsible and show its contents */
+  .hero-inner > *, .scroll-cue { opacity: 1 !important; animation: none !important; transform: none !important; }
+  /* expand every accordion. this includes renderers that skip beforeprint. */
+  details.fix > summary { list-style: none; }
+  details.fix summary .mark { display: none !important; }
+  details.fix > *:not(summary),
   details.fix > .log { display: block !important; }
-  details.fix summary .mark { display: none; }
-  .field-note { display: block !important; }
-  .field-note[hidden] { display: none !important; } /* transient popover stays hidden */
-  /* keep blocks whole across page breaks */
-  .hero, .plate, .legend, details.fix, .log, .travelmap { break-inside: avoid; }
+  /* the surface keyframe starts at opacity 0, and print keeps it there. this
+     hides the boxes. set the animation to off. */
+  .log { animation: none !important; opacity: 1 !important; transform: none !important; }
+  .field-note { display: none !important; }
+  /* keep each block whole across the page breaks. */
+  .hero, .plate, .legend, details.fix, .log { break-inside: avoid; }
   a { border-bottom: none !important; color: var(--ink); }
-  .travelmap svg { max-height: 420px; }
 }

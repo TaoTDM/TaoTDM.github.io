@@ -1,4 +1,3 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Anchor">
-  <rect width="100" height="100" rx="18" fill="#fffefa"/>
-  <text x="50" y="76" text-anchor="middle" font-size="72">⚓</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Mountain">
+  <text x="50" y="82" font-size="82" text-anchor="middle">⛰️</text>
 </svg>
