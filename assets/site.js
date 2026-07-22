@@ -388,15 +388,15 @@ document.documentElement.classList.add('js-ready');
 
   var SCENE_SOUNDS = {
     dawn: {
-      url: DAWN_SOUND_URL, label: 'morning pine air', volume: 0.34,
+      url: DAWN_SOUND_URL, label: 'morning pine air', volume: 1,
       fallback: { noise: 'brown', highpass: 115, lowpass: 1050, gain: 0.07, rate: 0.045, wander: 170 }
     },
     dusk: {
-      url: DUSK_SOUND_URL, label: 'fogbound coast', volume: 0.36,
+      url: DUSK_SOUND_URL, label: 'fogbound coast', volume: 0.8,
       fallback: { noise: 'brown', highpass: 74, lowpass: 860, gain: 0.06, rate: 0.045, wander: 110 }
     },
     night: {
-      url: NIGHT_SOUND_URL, label: 'forest rain', volume: 0.42,
+      url: NIGHT_SOUND_URL, label: 'forest rain', volume: 0.75,
       fallback: { noise: 'pink', highpass: 230, lowpass: 1420, gain: 0.12, rate: 0.065, wander: 150 }
     }
   };
@@ -406,6 +406,8 @@ document.documentElement.classList.add('js-ready');
   var ambientAudio = null;                 /* the custom HTMLAudioElement. */
   var audioCtx = null;
   var generatedSource = null, generatedLfo = null, soundGain = null;
+  var soundAttempt = 0;
+  var soundState = 'off';
 
   function fadeAudio(el, to, ms, done) {
     var from = el.volume, start = performance.now();
@@ -494,24 +496,55 @@ document.documentElement.classList.add('js-ready');
   }
   function startSceneSound(tod) {
     var scene = SCENE_SOUNDS[tod] || SCENE_SOUNDS.night;
+    var attempt = ++soundAttempt;
     stopSceneSound(260);
     if (scene.url) {
-      ambientAudio = new Audio(scene.url);
-      ambientAudio.loop = true;
-      ambientAudio.preload = 'auto';
-      ambientAudio.volume = 0;
-      var p = ambientAudio.play();
-      if (p && p.catch) p.catch(function() {});
-      fadeAudio(ambientAudio, scene.volume, 800);
+      var audio = new Audio(scene.url);
+      var failed = false;
+      ambientAudio = audio;
+      audio.loop = true;
+      audio.preload = 'auto';
+      audio.volume = 0;
+      soundState = 'loading';
+      updateSoundButton();
+
+      function useFallback() {
+        if (failed || attempt !== soundAttempt || !soundOn) return;
+        failed = true;
+        audio.pause();
+        if (ambientAudio === audio) ambientAudio = null;
+        soundState = buildGeneratedSound(scene.fallback) ? 'fallback' : 'error';
+        if (soundState === 'error') soundOn = false;
+        updateSoundButton();
+      }
+
+      audio.addEventListener('error', useFallback, { once: true });
+      var play = audio.play();
+      if (play && play.then) {
+        play.then(function() {
+          if (attempt !== soundAttempt || !soundOn) { audio.pause(); return; }
+          soundState = 'playing';
+          fadeAudio(audio, scene.volume, 800);
+          updateSoundButton();
+        }).catch(useFallback);
+      } else {
+        soundState = 'playing';
+        fadeAudio(audio, scene.volume, 800);
+      }
       return true;
     }
-    return buildGeneratedSound(scene.fallback);
+    var generated = buildGeneratedSound(scene.fallback);
+    soundState = generated ? 'fallback' : 'error';
+    return generated;
   }
   function updateSoundButton() {
     if (!soundBtn || !SCENE_SOUNDS) return;
     var scene = SCENE_SOUNDS[currentTod] || SCENE_SOUNDS.night;
-    soundBtn.textContent = soundOn ? '🔊' : '🔇';
-    soundBtn.title = scene.label + (soundOn ? ' — on' : ' — off');
+    soundBtn.textContent = soundOn ? (soundState === 'loading' ? '🔈' : '🔊') : '🔇';
+    var stateLabel = soundState === 'loading' ? ' — loading'
+      : soundState === 'fallback' ? ' — generated fallback'
+      : soundOn ? ' — on' : ' — off';
+    soundBtn.title = scene.label + stateLabel;
     soundBtn.setAttribute('aria-label', 'toggle ' + scene.label);
     soundBtn.setAttribute('aria-pressed', String(soundOn));
   }
@@ -522,7 +555,11 @@ document.documentElement.classList.add('js-ready');
   function setSound(on) {
     soundOn = on;
     if (on && !startSceneSound(currentTod)) soundOn = false;
-    else if (!on) stopSceneSound(400);
+    else if (!on) {
+      soundAttempt++;
+      soundState = 'off';
+      stopSceneSound(400);
+    }
     updateSoundButton();
   }
   if (soundBtn) soundBtn.addEventListener('click', function() { setSound(!soundOn); });
