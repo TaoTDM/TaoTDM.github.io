@@ -4,3 +4,4 @@ EDITING.md
 .DS_Store
 node_modules/
 dist/
+docs/

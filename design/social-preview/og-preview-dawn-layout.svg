@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">Shi-Tao Chang — mapping beyond the treeline</title>
+  <desc id="desc">A misty Pacific Northwest mountain at dawn behind Shi-Tao Chang's portfolio title.</desc>
+  <defs>
+    <linearGradient id="shade" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#111820" stop-opacity=".46"/>
+      <stop offset=".52" stop-color="#111820" stop-opacity=".18"/>
+      <stop offset=".76" stop-color="#111820" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <image href="og-preview-dawn-source.png" x="0" y="0" width="1200" height="630" preserveAspectRatio="xMidYMid slice"/>
+  <rect width="1200" height="630" fill="url(#shade)"/>
+
+  <g transform="translate(78 0)">
+    <text y="118" fill="#d2a0ae" font-family="Menlo, monospace" font-size="15" letter-spacing="4">WORKS &amp; UNDERTAKINGS</text>
+    <text y="244" fill="#f7f4f6" font-family="Georgia, serif" font-size="78">Shi-Tao Chang</text>
+    <text y="296" fill="#e8e8ec" font-family="Georgia, serif" font-size="28" font-style="italic">mapping beyond the treeline</text>
+    <text y="356" fill="#96b6d0" font-family="Menlo, monospace" font-size="13" letter-spacing="1.4">COMPUTER SCIENCE  ·  LINGUISTICS  ·  GEOGRAPHY</text>
+    <text y="492" fill="#b1b6c2" font-family="Menlo, monospace" font-size="12" letter-spacing="1.2">AUSTIN, TEXAS  ·  IN THE MORNING DEW</text>
+    <text y="525" fill="#d2a0ae" font-family="Menlo, monospace" font-size="12" letter-spacing="3">TAOTDM.COM</text>
+  </g>
+</svg>
