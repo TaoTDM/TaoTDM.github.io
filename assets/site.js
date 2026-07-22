@@ -258,7 +258,7 @@ document.documentElement.classList.add('js-ready');
 
   var watch = document.getElementById('watch-toggle');
   var mistOn = true;
-  try { if (localStorage.getItem('v4-mist') === 'off') mistOn = false; } catch (e) {}
+  try { if (localStorage.getItem('v5-weather') === 'off') mistOn = false; } catch (e) {}
   var weatherLine = document.getElementById('weather-line');
   var sceneCue = document.getElementById('scene-cue');
   var WEATHER_BY_TOD = {
@@ -376,15 +376,15 @@ document.documentElement.classList.add('js-ready');
       document.documentElement.setAttribute('data-mist', 'off');
     }
     syncSceneWeather();
-    try { localStorage.setItem('v4-mist', on ? 'on' : 'off'); } catch (e) {}
+    try { localStorage.setItem('v5-weather', on ? 'on' : 'off'); } catch (e) {}
   }
   setMist(mistOn);
   if (watch) watch.addEventListener('click', function() { setMist(!mistOn); });
 
   /* sounds for each theme. */
-  var DAWN_SOUND_URL = '/audio/dawn.mp3';
-  var DUSK_SOUND_URL = '/audio/dusk.mp3';
-  var NIGHT_SOUND_URL = '/audio/night.ogg';
+  var DAWN_SOUND_URL = new URL('./audio/dawn.mp3', import.meta.url).href;
+  var DUSK_SOUND_URL = new URL('./audio/dusk.mp3', import.meta.url).href;
+  var NIGHT_SOUND_URL = new URL('./audio/night.mp3', import.meta.url).href;
 
   var SCENE_SOUNDS = {
     dawn: {
