@@ -381,10 +381,17 @@ document.documentElement.classList.add('js-ready');
   setMist(mistOn);
   if (watch) watch.addEventListener('click', function() { setMist(!mistOn); });
 
-  /* sounds for each theme. */
+  /* sounds for each theme. the two defaults are percentages, kept here so the
+     balance is easy to settle after trying it in the browser. */
   var DAWN_SOUND_URL = new URL('./audio/dawn.mp3', import.meta.url).href;
   var DUSK_SOUND_URL = new URL('./audio/dusk.mp3', import.meta.url).href;
   var NIGHT_SOUND_URL = new URL('./audio/night.mp3', import.meta.url).href;
+  var DAWN_MUSIC_URL = new URL('./audio/wethands-dawn.mp3', import.meta.url).href;
+  var DUSK_MUSIC_URL = new URL('./audio/redswan-dusk.mp3', import.meta.url).href;
+  var NIGHT_MUSIC_URL = new URL('./audio/sweden-night.mp3', import.meta.url).href;
+
+  var DEFAULT_MUSIC_VOLUME = 45;
+  var DEFAULT_AMBIENCE_VOLUME = 85;
 
   var SCENE_SOUNDS = {
     dawn: {
@@ -401,17 +408,41 @@ document.documentElement.classList.add('js-ready');
     }
   };
 
+  /* The recordings have different native loudness, so these small per-track
+     trims keep the master music slider useful across all three scenes. */
+  var SCENE_MUSIC = {
+    dawn: { url: DAWN_MUSIC_URL, volume: 0.9 },
+    dusk: { url: DUSK_MUSIC_URL, volume: 1 },
+    night: { url: NIGHT_MUSIC_URL, volume: 1 }
+  };
+
   var soundBtn = document.getElementById('sound-toggle');
+  var audioControl = document.getElementById('audio-control');
+  var mixerToggle = document.getElementById('mixer-toggle');
+  var mixerPanel = document.getElementById('audio-mixer');
+  var musicVolumeInput = document.getElementById('music-volume');
+  var ambienceVolumeInput = document.getElementById('ambience-volume');
+  var musicVolumeValue = document.getElementById('music-volume-value');
+  var ambienceVolumeValue = document.getElementById('ambience-volume-value');
   var soundOn = false;
   var ambientAudio = null;                 /* the custom HTMLAudioElement. */
+  var musicAudio = null;
   var audioCtx = null;
   var generatedSource = null, generatedLfo = null, soundGain = null;
+  var generatedBaseGain = 0;
   var soundAttempt = 0;
+  var musicAttempt = 0;
   var soundState = 'off';
+  var musicState = 'off';
+  var musicLevel = DEFAULT_MUSIC_VOLUME / 100;
+  var ambienceLevel = DEFAULT_AMBIENCE_VOLUME / 100;
 
   function fadeAudio(el, to, ms, done) {
+    var run = (el._fadeRun || 0) + 1;
+    el._fadeRun = run;
     var from = el.volume, start = performance.now();
     (function step(now) {
+      if (el._fadeRun !== run) return;
       var k = Math.min(1, (now - start) / ms);
       el.volume = Math.max(0, Math.min(1, from + (to - from) * k));
       if (k < 1) requestAnimationFrame(step);
@@ -425,11 +456,19 @@ document.documentElement.classList.add('js-ready');
     if (!ms) { audio.pause(); return; }
     fadeAudio(audio, 0, ms, function() { audio.pause(); });
   }
+  function stopMusic(ms) {
+    var audio = musicAudio;
+    musicAudio = null;
+    if (!audio) return;
+    if (!ms) { audio.pause(); return; }
+    fadeAudio(audio, 0, ms, function() { audio.pause(); });
+  }
   function stopGeneratedSound(ms) {
     var source = generatedSource;
     var lfo = generatedLfo;
     var gain = soundGain;
     generatedSource = generatedLfo = soundGain = null;
+    generatedBaseGain = 0;
     if (!source) return;
     function dispose() {
       try { source.stop(); } catch (e) {}
@@ -488,10 +527,11 @@ document.documentElement.classList.add('js-ready');
     lfo.connect(lfoDepth); lfoDepth.connect(lp.frequency);
     generatedSource = src;
     generatedLfo = lfo;
+    generatedBaseGain = profile.gain;
     src.start();
     lfo.start();
     var t = audioCtx.currentTime;
-    soundGain.gain.linearRampToValueAtTime(profile.gain, t + 0.8);
+    soundGain.gain.linearRampToValueAtTime(profile.gain * ambienceLevel, t + 0.8);
     return true;
   }
   function startSceneSound(tod) {
@@ -514,7 +554,7 @@ document.documentElement.classList.add('js-ready');
         audio.pause();
         if (ambientAudio === audio) ambientAudio = null;
         soundState = buildGeneratedSound(scene.fallback) ? 'fallback' : 'error';
-        if (soundState === 'error') soundOn = false;
+        if (soundState === 'error' && musicState === 'error') soundOn = false;
         updateSoundButton();
       }
 
@@ -524,12 +564,12 @@ document.documentElement.classList.add('js-ready');
         play.then(function() {
           if (attempt !== soundAttempt || !soundOn) { audio.pause(); return; }
           soundState = 'playing';
-          fadeAudio(audio, scene.volume, 800);
+          fadeAudio(audio, scene.volume * ambienceLevel, 800);
           updateSoundButton();
         }).catch(useFallback);
       } else {
         soundState = 'playing';
-        fadeAudio(audio, scene.volume, 800);
+        fadeAudio(audio, scene.volume * ambienceLevel, 800);
       }
       return true;
     }
@@ -537,32 +577,145 @@ document.documentElement.classList.add('js-ready');
     soundState = generated ? 'fallback' : 'error';
     return generated;
   }
+  function startSceneMusic(tod) {
+    var scene = SCENE_MUSIC[tod] || SCENE_MUSIC.night;
+    var attempt = ++musicAttempt;
+    stopMusic(260);
+    if (!scene.url) {
+      musicState = 'error';
+      return false;
+    }
+
+    var audio = new Audio(scene.url);
+    var failed = false;
+    musicAudio = audio;
+    audio.loop = true;
+    audio.preload = 'auto';
+    audio.volume = 0;
+    musicState = 'loading';
+    updateSoundButton();
+
+    function markFailed() {
+      if (failed || attempt !== musicAttempt || !soundOn) return;
+      failed = true;
+      audio.pause();
+      if (musicAudio === audio) musicAudio = null;
+      musicState = 'error';
+      if (soundState === 'error') soundOn = false;
+      updateSoundButton();
+    }
+
+    audio.addEventListener('error', markFailed, { once: true });
+    var play = audio.play();
+    if (play && play.then) {
+      play.then(function() {
+        if (attempt !== musicAttempt || !soundOn) { audio.pause(); return; }
+        musicState = 'playing';
+        fadeAudio(audio, scene.volume * musicLevel, 800);
+        updateSoundButton();
+      }).catch(markFailed);
+    } else {
+      musicState = 'playing';
+      fadeAudio(audio, scene.volume * musicLevel, 800);
+    }
+    return true;
+  }
   function updateSoundButton() {
     if (!soundBtn || !SCENE_SOUNDS) return;
     var scene = SCENE_SOUNDS[currentTod] || SCENE_SOUNDS.night;
-    soundBtn.textContent = soundOn ? (soundState === 'loading' ? '🔈' : '🔊') : '🔇';
-    var stateLabel = soundState === 'loading' ? ' — loading'
+    var loading = soundState === 'loading' || musicState === 'loading';
+    soundBtn.textContent = soundOn ? (loading ? '🔈' : '🔊') : '🔇';
+    var stateLabel = loading ? ' — loading'
       : soundState === 'fallback' ? ' — generated fallback'
       : soundOn ? ' — on' : ' — off';
-    soundBtn.title = scene.label + stateLabel;
-    soundBtn.setAttribute('aria-label', 'toggle ' + scene.label);
+    soundBtn.title = scene.label + ' + music' + stateLabel;
+    soundBtn.setAttribute('aria-label', 'toggle scene audio');
     soundBtn.setAttribute('aria-pressed', String(soundOn));
   }
   function syncSceneSound() {
-    if (soundOn && !startSceneSound(currentTod)) soundOn = false;
+    if (soundOn) {
+      var ambienceStarted = startSceneSound(currentTod);
+      var musicStarted = startSceneMusic(currentTod);
+      if (!ambienceStarted && !musicStarted) soundOn = false;
+    }
     updateSoundButton();
   }
   function setSound(on) {
     soundOn = on;
-    if (on && !startSceneSound(currentTod)) soundOn = false;
+    if (on) {
+      var ambienceStarted = startSceneSound(currentTod);
+      var musicStarted = startSceneMusic(currentTod);
+      if (!ambienceStarted && !musicStarted) soundOn = false;
+    }
     else if (!on) {
       soundAttempt++;
+      musicAttempt++;
       soundState = 'off';
+      musicState = 'off';
       stopSceneSound(400);
+      stopMusic(400);
     }
     updateSoundButton();
   }
+  function sceneAmbienceTarget() {
+    var scene = SCENE_SOUNDS[currentTod] || SCENE_SOUNDS.night;
+    return scene.volume * ambienceLevel;
+  }
+  function sceneMusicTarget() {
+    var scene = SCENE_MUSIC[currentTod] || SCENE_MUSIC.night;
+    return scene.volume * musicLevel;
+  }
+  function updateMixerLabel() {
+    if (musicVolumeValue) musicVolumeValue.textContent = Math.round(musicLevel * 100) + '%';
+    if (ambienceVolumeValue) ambienceVolumeValue.textContent = Math.round(ambienceLevel * 100) + '%';
+    if (musicVolumeInput) musicVolumeInput.style.setProperty('--level', Math.round(musicLevel * 100) + '%');
+    if (ambienceVolumeInput) ambienceVolumeInput.style.setProperty('--level', Math.round(ambienceLevel * 100) + '%');
+    if (mixerToggle) {
+      mixerToggle.title = 'audio levels — music ' + Math.round(musicLevel * 100)
+        + '% · ambience ' + Math.round(ambienceLevel * 100) + '%';
+    }
+  }
+  function setMusicLevel(value) {
+    musicLevel = Math.max(0, Math.min(1, Number(value) / 100));
+    if (musicAudio) fadeAudio(musicAudio, sceneMusicTarget(), 90);
+    updateMixerLabel();
+  }
+  function setAmbienceLevel(value) {
+    ambienceLevel = Math.max(0, Math.min(1, Number(value) / 100));
+    if (ambientAudio) fadeAudio(ambientAudio, sceneAmbienceTarget(), 90);
+    if (soundGain && audioCtx) {
+      var t = audioCtx.currentTime;
+      soundGain.gain.cancelScheduledValues(t);
+      soundGain.gain.setTargetAtTime(generatedBaseGain * ambienceLevel, t, 0.03);
+    }
+    updateMixerLabel();
+  }
+  function setMixerOpen(on) {
+    if (!mixerToggle || !mixerPanel) return;
+    mixerPanel.hidden = !on;
+    mixerToggle.setAttribute('aria-expanded', String(on));
+  }
   if (soundBtn) soundBtn.addEventListener('click', function() { setSound(!soundOn); });
+  if (musicVolumeInput) {
+    musicVolumeInput.value = DEFAULT_MUSIC_VOLUME;
+    musicVolumeInput.addEventListener('input', function() { setMusicLevel(this.value); });
+  }
+  if (ambienceVolumeInput) {
+    ambienceVolumeInput.value = DEFAULT_AMBIENCE_VOLUME;
+    ambienceVolumeInput.addEventListener('input', function() { setAmbienceLevel(this.value); });
+  }
+  if (mixerToggle) {
+    mixerToggle.addEventListener('click', function() {
+      setMixerOpen(mixerToggle.getAttribute('aria-expanded') !== 'true');
+    });
+  }
+  document.addEventListener('click', function(e) {
+    if (audioControl && !audioControl.contains(e.target)) setMixerOpen(false);
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') setMixerOpen(false);
+  });
+  updateMixerLabel();
   updateSoundButton();
 
   /* email. copy it and show a toast. */
@@ -1101,8 +1254,8 @@ document.documentElement.classList.add('js-ready');
       { name: 'toggle weather', aliases: 'mist rain dew', kind: 'weather', run: function() { setMist(!mistOn); } },
       { name: 'show weather', aliases: 'enable rain fog dew', kind: 'weather', run: function() { if (!mistOn) setMist(true); } },
       { name: 'clear weather', aliases: 'disable atmosphere', kind: 'weather', run: function() { if (mistOn) setMist(false); } },
-      { name: 'toggle ambience', aliases: 'sound audio', kind: 'sound', run: function() { setSound(!soundOn); } },
-      { name: 'sound on', aliases: 'play ambience audio', kind: 'sound', run: function() { if (!soundOn) setSound(true); } },
+      { name: 'toggle audio', aliases: 'sound ambience music', kind: 'sound', run: function() { setSound(!soundOn); } },
+      { name: 'sound on', aliases: 'play music ambience audio', kind: 'sound', run: function() { if (!soundOn) setSound(true); } },
       { name: 'mute sound', aliases: 'sound off silence', kind: 'sound', run: function() { if (soundOn) setSound(false); } },
       { name: 'close field note', aliases: 'dismiss map note', kind: 'map', run: function() { fieldNote.hidden = true; } },
       { name: 'print', aliases: 'paper pdf', kind: 'utility', run: function() { window.print(); } },

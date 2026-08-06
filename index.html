@@ -33,7 +33,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20260722-8">
+<link rel="stylesheet" href="assets/site.css?v=20260806-3">
 </head>
 <body>
 
@@ -56,7 +56,22 @@
     <nav class="topnav" aria-label="primary">
       <a id="email-link">email</a>
       <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank" rel="noreferrer">resume</a>
-      <button class="icon-btn" id="sound-toggle" type="button" aria-label="toggle scene ambience" aria-pressed="false" title="scene ambience — off">🔇</button>
+      <span class="audio-control" id="audio-control">
+        <button class="icon-btn" id="sound-toggle" type="button" aria-label="toggle scene audio" aria-pressed="false" title="scene audio — off">🔇</button>
+        <button class="mixer-toggle" id="mixer-toggle" type="button" aria-label="adjust audio levels" aria-expanded="false" aria-controls="audio-mixer" title="audio levels">≋</button>
+        <span class="audio-mixer" id="audio-mixer" hidden>
+          <label class="mixer-row" for="music-volume">
+            <span>music</span>
+            <input id="music-volume" type="range" min="0" max="100" step="1" value="45">
+            <output id="music-volume-value" for="music-volume">45%</output>
+          </label>
+          <label class="mixer-row" for="ambience-volume">
+            <span>ambience</span>
+            <input id="ambience-volume" type="range" min="0" max="100" step="1" value="75">
+            <output id="ambience-volume-value" for="ambience-volume">75%</output>
+          </label>
+        </span>
+      </span>
       <button class="icon-btn" id="watch-toggle" type="button" aria-label="toggle scene weather" aria-pressed="true" title="scene weather on">💧</button>
       <span class="tod" role="group" aria-label="time of day (scroll or click)" title="scroll to change the light">
         <span class="tod-slider" aria-hidden="true"></span>
@@ -102,7 +117,7 @@
         <span class="obs">at first light</span>
       </div>
       <div class="plate-body">
-        <p>to read .</p>
+        <p>yo and hello</p>
         <p>interested in spatial datascience, neuro ai, &amp; human-centered geography.</p>
         <p>currently doing geo ai research @ <a href="https://sites.utexas.edu/gisense/" target="_blank" rel="noreferrer">GISense Lab</a></p>
       </div>
@@ -437,7 +452,8 @@
         </a>
       </nav>
       <div class="colophon">
-        by shi-tao chang · 2026
+        <span>by shi-tao chang · 2026</span>
+        <span class="music-credit">music · <a href="https://www.youtube.com/c/ibiBerlin" target="_blank" rel="noreferrer">ibi</a> / <a href="https://c418.org/" target="_blank" rel="noreferrer">c418</a> · <a href="https://www.youtube.com/c/@SLSMusic" target="_blank" rel="noreferrer">“SLSMusic</a></span>
       </div>
     </footer>
 
@@ -456,6 +472,6 @@
     </div>
   </div>
 
-<script type="module" src="/assets/site.js?v=20260722-8"></script>
+<script type="module" src="/assets/site.js?v=20260806-4"></script>
 </body>
 </html>

@@ -390,6 +390,118 @@ html[data-mist="off"] .grain { display: none; }
 .icon-btn:hover { filter: grayscale(0) opacity(1); transform: translateY(-1px); }
 .icon-btn[aria-pressed="false"] { filter: grayscale(0.7) opacity(0.6); }
 
+/* two quiet audio layers share the speaker, with their balance tucked behind
+   a small mixer mark rather than taking over the header. */
+.audio-control {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  pointer-events: auto;
+}
+.mixer-toggle {
+  appearance: none;
+  border: 0;
+  background: none;
+  color: var(--mist);
+  cursor: pointer;
+  padding: 0;
+  font: 12px/1 "Maple Mono", "Courier New", monospace;
+  opacity: 0.65;
+  transform: rotate(90deg);
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+.mixer-toggle:hover,
+.mixer-toggle[aria-expanded="true"] {
+  color: var(--jade);
+  opacity: 1;
+}
+.audio-mixer {
+  position: absolute;
+  top: calc(100% + 13px);
+  right: -5px;
+  width: 200px;
+  padding: 8px 11px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--stone) 62%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 8px 24px rgba(0, 0, 0, 0.2);
+  -webkit-backdrop-filter: blur(14px) saturate(125%);
+  backdrop-filter: blur(14px) saturate(125%);
+}
+.audio-mixer[hidden] { display: none; }
+.mixer-row {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 53px minmax(70px, 1fr) 31px;
+  align-items: center;
+  gap: 8px;
+  min-height: 20px;
+  color: var(--ink-dim);
+  font-size: 8.5px;
+  letter-spacing: 0.7px;
+  text-transform: lowercase;
+}
+.mixer-row output {
+  color: var(--mist);
+  font: 8px/1 "Maple Mono", "Courier New", monospace;
+  letter-spacing: 0;
+  text-align: right;
+}
+.mixer-row input[type="range"] {
+  --level: 50%;
+  appearance: none;
+  width: 100%;
+  height: 14px;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+}
+.mixer-row input[type="range"]::-webkit-slider-runnable-track {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--jade) 82%, white) 0 var(--level),
+    rgba(255, 255, 255, 0.11) var(--level) 100%);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.16);
+}
+.mixer-row input[type="range"]::-webkit-slider-thumb {
+  appearance: none;
+  width: 9px;
+  height: 9px;
+  margin-top: -3px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--jade) 58%, rgba(255, 255, 255, 0.86));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    0 1px 4px rgba(0, 0, 0, 0.26);
+}
+.mixer-row input[type="range"]::-moz-range-track {
+  height: 3px;
+  border: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--jade) 82%, white) 0 var(--level),
+    rgba(255, 255, 255, 0.11) var(--level) 100%);
+  box-shadow: inset 0 1px 1px rgba(0, 0, 0, 0.16);
+}
+.mixer-row input[type="range"]::-moz-range-thumb {
+  width: 9px;
+  height: 9px;
+  border: 1px solid rgba(255, 255, 255, 0.56);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--jade) 58%, rgba(255, 255, 255, 0.86));
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.6),
+    0 1px 4px rgba(0, 0, 0, 0.26);
+}
+
 /* hero */
 .hero {
   position: relative;
@@ -889,12 +1001,30 @@ details.fix summary .ext {
 }
 
 .colophon {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 13px;
   text-align: center;
   margin-top: 26px;
-  font-family: var(--serif);
+  font-family: var(--serif-text);
   font-style: italic;
-  font-size: 13px;
+  font-size: 11.5px;
   color: var(--mist);
+}
+.music-credit {
+  padding-left: 13px;
+  border-left: 1px solid color-mix(in srgb, var(--mist) 42%, transparent);
+  font: inherit;
+}
+.music-credit a {
+  color: inherit;
+  border-bottom-color: color-mix(in srgb, var(--mist) 45%, transparent);
+}
+.music-credit a:hover {
+  color: var(--glow);
+  border-bottom-color: var(--glow);
 }
 .colophon .flourish { color: var(--jade); font-style: normal; }
 
@@ -1129,6 +1259,8 @@ details.fix summary .ext {
   .legend { margin-top: 52px; }
   .legend-bearing { display: none; }
   .waypoint-note { font-size: 10.5px; }
+  .audio-mixer { right: -38px; }
+  .music-credit { padding-left: 0; border-left: 0; flex-basis: 100%; }
 }
 
 @media (prefers-reduced-motion: reduce) {
