@@ -199,6 +199,7 @@ html, body {
   border-radius: 50%;
   box-sizing: border-box;
 }
+.pips[hidden] { display: none; }
 .pips button.on::after { background: var(--ink); }
 .pips button.end::after { opacity: .35; }
 .pips button:hover::after { transform: scale(1.5); }
