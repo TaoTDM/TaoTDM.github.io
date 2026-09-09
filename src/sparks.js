@@ -201,7 +201,9 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     for (const s of sparks) {
       /* light on this spark, 0 to 1 */
       s.lit = night && !s.absorbed ? Math.min(1, litAt(s.x, s.y) * 1.6) : 0;
-      const wantLabel = (s.hover || s.focused || s.whisper || mode === 'gather' || s.peek > 0) ? 1 : s.lit;
+      /* in the light the text reads in full, with a short ramp at the edge */
+      const read = Math.max(0, Math.min(1, (s.lit - .1) / .2));
+      const wantLabel = (s.hover || s.focused || s.whisper || mode === 'gather' || s.peek > 0) ? 1 : read;
       s.alpha += (wantLabel - s.alpha) * fade;
       s.vis += ((s.absorbed ? 0 : 1) - s.vis) * fade;
       if (s.absorbed || s.flying || s.focused || s.peek > 0 || s.dragging) continue;
@@ -379,7 +381,10 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     if (mode === 'gather') gather(false, true);
     s.hover = false; s.peek = 0;
     s.button.blur();
-    fly(s, G.box, 680, easeInOut, () => {
+    /* a tap flies as before, a drop slides in */
+    const d = Math.hypot(G.box.x - s.x, G.box.y - s.y);
+    const dropped = d < 80;
+    fly(s, G.box, dropped ? 260 : 680, dropped ? easeOut : easeInOut, () => {
       s.absorbed = true;
       s.vx = 0; s.vy = 0;
       on.land && on.land(s);
@@ -459,22 +464,35 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     s.vx = 0; s.vy = 0;
     canvas.classList.add('drag');
   }
+  const nearBox = p => inside(p, { x: G.box.x, y: G.box.y, w: G.box.w + 60, h: G.box.h + 60 });
   function moveDrag(p) {
     const now = performance.now();
     const dt = Math.max(.008, (now - dragLast.t) / 1000);
     drag.vx = drag.vx * .6 + ((p.x - dragLast.x) / dt) * .4;
     drag.vy = drag.vy * .6 + ((p.y - dragLast.y) / dt) * .4;
-    drag.x = Math.min(G.w - PAD, Math.max(PAD, p.x));
-    drag.y = Math.min(G.h - PAD, Math.max(PAD, p.y));
+    let x = Math.min(G.w - PAD, Math.max(PAD, p.x));
+    let y = Math.min(G.h - PAD, Math.max(PAD, p.y));
+    /* near the box the spark is drawn toward its center */
+    const near = nearBox(p);
+    if (near) {
+      const b = G.box;
+      const kx = 1 - Math.min(1, Math.abs(p.x - b.x) / (b.w / 2 + 60));
+      const ky = 1 - Math.min(1, Math.abs(p.y - b.y) / (b.h / 2 + 60));
+      const k = Math.min(kx, ky) * .8;
+      x += (b.x - x) * k; y += (b.y - y) * k;
+    }
+    box.classList.toggle('ready', near);
+    drag.x = x; drag.y = y;
     dragLast = { x: p.x, y: p.y, t: now };
   }
   function endDrag(p) {
     const s = drag; drag = null;
     s.dragging = false;
     canvas.classList.remove('drag');
+    box.classList.remove('ready');
     if (coarse) s.hover = false;
     /* dropped into the box */
-    if (inside(p, { x: G.box.x, y: G.box.y, w: G.box.w + 40, h: G.box.h + 40 })) {
+    if (nearBox(p)) {
       s.vx = 0; s.vy = 0;
       pick(s);
       return;
@@ -525,6 +543,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     dragFrom = p;
     peeked = false;
     clearTimeout(pressTimer);
+    if (pressed) { try { canvas.setPointerCapture(e.pointerId); } catch {} }
     if (pressed) {
       pressed.hover = true;
       pressTimer = setTimeout(() => { peeked = true; pressed.peek = 1; }, 420);

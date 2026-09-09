@@ -81,14 +81,18 @@ html, body {
   transition: background 120ms, color 120ms, box-shadow 600ms;
 }
 .mark-box span { display: block; }
+/* box flash */
+.mark-box.hot { background: var(--ink); color: var(--paper); }
 
-/* night: the box is a lit window. its light falls out and down on the canvas */
+/* night window */
 :root[data-theme="night"] .mark-box {
   background: var(--ink);
   color: var(--paper);
   box-shadow: 0 0 30px rgba(255, 255, 255, .35), 0 0 120px rgba(255, 255, 255, .14);
 }
 :root[data-theme="night"] .mark-box.hot { background: var(--paper); color: var(--ink); }
+/* spark held over box */
+.mark-box.ready { outline: 1px solid var(--ink); outline-offset: 4px; }
 
 /* the reader */
 .reader {
