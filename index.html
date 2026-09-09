@@ -1,492 +1,64 @@
 <!DOCTYPE html>
-<html lang="en" data-tod="dawn" data-weather="dew">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Shi-Tao Chang — mapping beyond the treeline</title>
-<meta name="description" content="Computer science, linguistics, and geography — research, projects, and field notes from Austin, Texas.">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>tao</title>
+<meta name="description" content="Geo AI @ UT, GISense Lab.">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="theme-color" content="#ffffff">
 
-<!-- the preview card. -->
+<!-- share card info -->
 <meta property="og:type" content="website">
-<meta property="og:site_name" content="taotdm">
-<meta property="og:title" content="Shi-Tao Chang — mapping beyond the treeline">
-<meta property="og:description" content="Computer science, linguistics, and geography — research, projects, and field notes from Austin, Texas.">
-<meta property="og:image" content="https://taotdm.com/images/og-preview-dawn.png">
-<meta property="og:image:secure_url" content="https://taotdm.com/images/og-preview-dawn.png">
+<meta property="og:site_name" content="tao">
+<meta property="og:title" content="tao">
+<meta property="og:description" content="Geo AI @ UT, GISense Lab.">
+<meta property="og:url" content="https://taotdm.com/">
+<meta property="og:image" content="https://taotdm.com/images/og-void.png">
+<meta property="og:image:secure_url" content="https://taotdm.com/images/og-void.png">
 <meta property="og:image:type" content="image/png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Shi-Tao Chang — mapping beyond the treeline, over a misty mountain at dawn">
-<meta property="og:url" content="https://taotdm.com/">
-
-<!-- the discord embed settings. -->
-<meta name="theme-color" content="#20262d">
-
-<!-- the twitter card. i do not use twitter. -->
+<meta property="og:image:alt" content="a hairline box with the letters t, a, o stacked, beside the words geo ai at ut, gisense lab.">
 <meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="Shi-Tao Chang — mapping beyond the treeline">
-<meta name="twitter:description" content="Computer science, linguistics, and geography — research, projects, and field notes from Austin, Texas.">
-<meta name="twitter:image" content="https://taotdm.com/images/og-preview-dawn.png">
-<meta name="twitter:image:alt" content="Shi-Tao Chang — mapping beyond the treeline, over a misty mountain at dawn">
+<meta name="twitter:title" content="tao">
+<meta name="twitter:description" content="Geo AI @ UT, GISense Lab.">
+<meta name="twitter:image" content="https://taotdm.com/images/og-void.png">
 
-<link rel="icon" href="images/favicon.svg?v=2" type="image/svg+xml">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Spectral:ital,wght@0,400;0,500;1,400&display=swap">
-<link rel="stylesheet" href="assets/site.css?v=20260806-3">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Libre+Franklin:wght@400;500&display=swap">
+<link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
 
-  <a class="skip-link" href="#about">skip to contents</a>
+  <a class="skip" href="#sparks">skip to the sparks</a>
 
-  <!-- the background layers, from back to front: photo, grade, atmosphere, weather canvas, lantern, grain. -->
-  <div class="hero-bg is-active" data-scene="dawn" aria-hidden="true"></div>
-  <div class="hero-bg" data-scene="dawn" aria-hidden="true"></div>
-  <div class="scene-grade" aria-hidden="true"></div>
-  <div class="mist mist-far" aria-hidden="true"></div>
-  <div class="mist mist-near" aria-hidden="true"></div>
-  <div class="mist mist-low" aria-hidden="true"></div>
-  <canvas id="weather-canvas" aria-hidden="true"></canvas>
-  <div class="lantern" aria-hidden="true"></div>
-  <div class="grain" aria-hidden="true"></div>
+  <!-- the void -->
+  <main class="void" id="void">
+    <canvas id="sky" aria-hidden="true"></canvas>
 
-  <!-- top bar -->
-  <header class="topbar">
-    <a class="brand" href="#top">taotdm</a>
-    <nav class="topnav" aria-label="primary">
-      <a id="email-link">email</a>
-      <a href="https://drive.google.com/file/d/1yYBWq4fe3GDF-m5aIS8u1w9jd3sg-gN8/view?usp=sharing" target="_blank" rel="noreferrer">resume</a>
-      <span class="audio-control" id="audio-control">
-        <button class="icon-btn" id="sound-toggle" type="button" aria-label="toggle scene audio" aria-pressed="false" title="scene audio — off">🔇</button>
-        <button class="mixer-toggle" id="mixer-toggle" type="button" aria-label="adjust audio levels" aria-expanded="false" aria-controls="audio-mixer" title="audio levels">≋</button>
-        <span class="audio-mixer" id="audio-mixer" hidden>
-          <label class="mixer-row" for="music-volume">
-            <span>music</span>
-            <input id="music-volume" type="range" min="0" max="100" step="1" value="45">
-            <output id="music-volume-value" for="music-volume">45%</output>
-          </label>
-          <label class="mixer-row" for="ambience-volume">
-            <span>ambience</span>
-            <input id="ambience-volume" type="range" min="0" max="100" step="1" value="75">
-            <output id="ambience-volume-value" for="ambience-volume">75%</output>
-          </label>
-        </span>
-      </span>
-      <button class="icon-btn" id="watch-toggle" type="button" aria-label="toggle scene weather" aria-pressed="true" title="scene weather on">💧</button>
-      <span class="tod" role="group" aria-label="time of day (scroll or click)" title="scroll to change the light">
-        <span class="tod-slider" aria-hidden="true"></span>
-        <button class="tod-btn" data-tod="dawn" type="button" aria-label="dawn light" title="dawn">🌄</button>
-        <button class="tod-btn" data-tod="dusk" type="button" aria-label="dusk light" title="dusk">🌇</button>
-        <button class="tod-btn" data-tod="night" type="button" aria-label="night" title="night">🌙</button>
-      </span>
-    </nav>
-  </header>
-
-  <!-- hero -->
-  <header class="hero" id="top">
-    <div class="hero-inner">
-      <div class="chart-no">works &amp; undertakings</div>
-      <h1 class="chart-title"><span>Shi-Tao</span><span>Chang</span></h1>
-      <div class="chart-sub">mapping beyond the treeline</div>
-      <div class="chart-coords">austin, texas · in the <b id="weather-line">morning dew</b></div>
-    </div>
-    <a class="scroll-cue" href="#main" aria-label="scroll to contents">
-      <span class="cue-word" id="scene-cue">cross the cloudline</span>
-      <span class="cue-arrow">↓</span>
-    </a>
-  </header>
-
-  <!-- scroll-spy rail -->
-  <nav class="spy" aria-label="sections">
-    <a href="#about" data-spy="about"><i>I</i><span>about</span></a>
-    <a href="#experience" data-spy="experience"><i>II</i><span>experience</span></a>
-    <a href="#projects" data-spy="projects"><i>III</i><span>projects</span></a>
-    <a href="#uni" data-spy="uni"><i>IV</i><span>uni</span></a>
-    <a href="#honors" data-spy="honors"><i>V</i><span>honors</span></a>
-    <a href="#travels" data-spy="travels"><i>VI</i><span>travels</span></a>
-  </nav>
-
-  <main id="main">
-    <div class="column">
-
-    <!-- about -->
-    <section class="plate reveal" id="about">
-      <div class="plate-label">
-        <span class="num">I</span>
-        <span class="cap">About</span>
-        <span class="obs">at first light</span>
+    <header class="mark">
+      <button class="mark-box" id="mark-box" type="button" aria-label="tao. gather the sparks, or turn the page">
+        <span>T</span><span>A</span><span>O</span>
+      </button>
+      <div class="reader" id="reader" aria-live="polite">
+        <div class="page idle">
+          <span>Geo AI @ <a href="https://www.utexas.edu/" target="_blank" rel="noreferrer">UT</a></span>
+          <span><a href="https://sites.utexas.edu/gisense/" target="_blank" rel="noreferrer">GISense Lab</a></span>
+        </div>
       </div>
-      <div class="plate-body">
-        <p>breaking bread with the stars.</p>
-        <p>interested in spatial datascience, neuro ai, &amp; human-centered geography.</p>
-        <p>currently doing geo ai research @ <a href="https://sites.utexas.edu/gisense/" target="_blank" rel="noreferrer">GISense Lab</a></p>
-      </div>
-    </section>
+    </header>
 
-    <!-- experience -->
-    <section class="plate reveal" id="experience">
-      <div class="plate-label">
-        <span class="num">II</span>
-        <span class="cap">Experience</span>
-        <span class="obs">ground covered</span>
-      </div>
-      <div class="plate-body">
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">01</span>
-            <span class="nm">research assistant · gisense lab</span>
-            <span class="leader"></span>
-            <span class="dt">mar 2026 —</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">gisense lab · austin, tx · nº 01</div>
-            <ul>
-              <li>Reproduced and fine-tuned baseline models to generate landscapes from sound.</li>
-              <li>Developed and evaluated raw video & EEG/MEG/fMRI datasets.</li>
-              <li>Currently engineering multimodal brain-to-image models for human-centered applications.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">02</span>
-            <span class="nm">backend/ml engineer · tx luminescence</span>
-            <span class="leader"></span>
-            <span class="dt">sep 2025 —</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">tx luminescence · austin, tx · nº 02</div>
-            <ul>
-              <li>Developed back-end architecture for an AI-powered educational app for K–12 learning.</li>
-              <li>Integrated AI model with RAG to enhance app functionality and learning outcomes.</li>
-              <li>Engineered authentication & api endpoints for student organization listing website.</li>
-            </ul>
-          </div>
-        </details>
-
-      </div>
-    </section>
-
-    <div class="divider reveal" aria-hidden="true"></div>
-
-    <!-- projects -->
-    <section class="plate reveal" id="projects">
-      <div class="plate-label">
-        <span class="num">III</span>
-        <span class="cap">Projects</span>
-        <span class="obs">selected work</span>
-      </div>
-      <div class="plate-body">
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">01</span>
-            <span class="nm">ecoscan</span>
-            <span class="leader"></span>
-            <span class="dt">mar 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/EcoScan" target="_blank" rel="noreferrer">↗</a></span>
-          </summary>
-          <div class="log">
-            <div class="stamp">python · yolov11 · nº 01</div>
-            <ul>
-              <li>On-device waste detection app with FastAPI backend to promote recycling habits.</li>
-              <li>Fine-tuned YOLOv11 for waste classification — 24 recyclable and hazardous waste classes.</li>
-              <li>Advanced to the Woz Hackathon final round, placing in the top 30 of 500+ teams.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">02</span>
-            <span class="nm">contextosolver</span>
-            <span class="leader"></span>
-            <span class="dt">apr 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/ContextoSolver" target="_blank" rel="noreferrer">↗</a></span>
-          </summary>
-          <div class="log">
-            <div class="stamp">word2vec · glove · fasttext · svd · nº 02</div>
-            <ul>
-              <li>Compared Word2Vec, GloVe, FastText, and SVD under the same training setup to test whether algorithm choice alone changes embedding geometry.</li>
-              <li>Built the FastText pipeline and cosine-similarity beam-search navigation benchmark.</li>
-              <li>Validated navigation results across five seeded runs.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">03</span>
-            <span class="nm">takemeter</span>
-            <span class="leader"></span>
-            <span class="dt">jun 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/TakeMeter" target="_blank" rel="noreferrer">↗</a></span>
-          </summary>
-          <div class="log">
-            <div class="stamp">python · distilbert · huggingface · groq · nº 03</div>
-            <ul>
-              <li>Built a balanced four-class dataset from 202 human-reviewed UT Austin Discord posts, then fine-tuned DistilBERT to classify academic, admissions, campus-life, and social discourse.</li>
-              <li>Benchmarked the fine-tuned model against zero-shot Llama 3.3 70B; the baseline won 90.3% to 71.0%, a 19.4-point difference.</li>
-              <li>Used confusion-matrix and error analysis to identify a topical-keyword shortcut in the fine-tuned model; validated annotation quality with Cohen’s κ = 0.869.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">04</span>
-            <span class="nm">mypersona</span>
-            <span class="leader"></span>
-            <span class="dt">mar 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/MyPersona" target="_blank" rel="noreferrer">↗</a></span>
-          </summary>
-          <div class="log">
-            <div class="stamp">python · asyncio · discord.py · nº 04</div>
-            <ul>
-              <li>Built a configurable real-time Discord bot that samples 30 real message examples for few-shot persona prompting and generates replies with Llama 3.3 70B through Groq.</li>
-              <li>Added optional Kagi translation across 250+ languages and styles, including controllable formality.</li>
-              <li>Packaged tokens, channel selection, persona instructions, and translation behavior through environment-based configuration.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">05</span>
-            <span class="nm">utfoods</span>
-            <span class="leader"></span>
-            <span class="dt">jun 2026</span>
-            <span class="ext"><a href="https://github.com/TaoTDM/ai201-project1-unofficial-guide-starter/tree/main" target="_blank" rel="noreferrer">↗</a></span>
-          </summary>
-          <div class="log">
-            <div class="stamp">python · sentence-transformers · groq · gradio · nº 05</div>
-            <ul>
-              <li>Curated 60 review-level chunks from 11 source documents spanning Reddit, Discord, Yelp, and local reporting on UT Austin dining.</li>
-              <li>Built local semantic retrieval with all-MiniLM-L6-v2 embeddings and cosine distance, preserving each review as a complete, non-overlapping chunk.</li>
-              <li>Grounded Llama 3.3 70B responses exclusively in retrieved context, with inline citations, explicit out-of-scope refusal, and a Gradio query interface.</li>
-            </ul>
-          </div>
-        </details>
-
-      </div>
-    </section>
-
-    <div class="divider reveal" aria-hidden="true"></div>
-
-    <!-- uni -->
-    <section class="plate reveal" id="uni">
-      <div class="plate-label">
-        <span class="num">IV</span>
-        <span class="cap">Uni</span>
-        <span class="obs">base camp</span>
-      </div>
-      <div class="plate-body">
-        <div class="plainrow"><span class="idx">◆</span>ut austin · cs · co'29</div>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">01</span>
-            <span class="nm">campus involvement</span>
-            <span class="leader"></span>
-            <span class="dt">dirp · uls · lu</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">organizations</div>
-            <ul>
-              <li>DiRP — Member · Coordinate sponsorship and fundraising outreach to corporate partners for a student computer-science research organization; member since August 2025 and administrator since April 2026.</li>
-              <li>ULS — Member</li>
-              <li>Longhorn Urbanists — Member</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">02</span>
-            <span class="nm">relevant coursework</span>
-            <span class="leader"></span>
-            <span class="dt">ut</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">classes taken at ut</div>
-            <ul>
-              <li>Machine Learning for Text Analysis</li>
-              <li>Data Structures</li>
-              <li>Discrete Math</li>
-            </ul>
-          </div>
-        </details>
-
-      </div>
-    </section>
-
-    <!-- honors -->
-    <section class="plate reveal" id="honors">
-      <div class="plate-label">
-        <span class="num">V</span>
-        <span class="cap">Honors</span>
-        <span class="obs">flags planted</span>
-      </div>
-      <div class="plate-body">
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">01</span>
-            <span class="nm">ut fall urap</span>
-            <span class="leader"></span>
-            <span class="dt">fall 2026</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">research program</div>
-            <ul>
-              <li>Selected into <a href="https://liberalarts.utexas.edu/students/undergraduate-research-archive/undergraduate-research-apprenticeship-program.html" target="_blank" rel="noreferrer">apprentice-faculty pair research program</a> for fall 2026.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">02</span>
-            <span class="nm">ut summer research scholar</span>
-            <span class="leader"></span>
-            <span class="dt">summer 2026</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">research program</div>
-            <ul>
-              <li>Selected into <a href="https://undergraduates.utexas.edu/academics/undergraduate-research/conducting-research/summer-research-scholars-programs" target="_blank" rel="noreferrer">undergraduate research professional development program</a> for summer 2026.</li>
-            </ul>
-          </div>
-        </details>
-
-        <details class="fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">03</span>
-            <span class="nm">research assistantship</span>
-            <span class="leader"></span>
-            <span class="dt">summer 2026</span>
-          </summary>
-          <div class="log">
-            <div class="stamp">scholarship</div>
-            <ul>
-              <li>Received $ for summer 2026 research assistantship at GISense Lab.</li>
-            </ul>
-          </div>
-        </details>
-
-        <div class="plainrow"><span class="idx">◆</span>university honors 2025</div>
-      </div>
-    </section>
-
-    <!-- travels -->
-    <section class="plate reveal" id="travels">
-      <div class="plate-label">
-        <span class="num">VI</span>
-        <span class="cap">Travels</span>
-        <span class="obs">waypoints</span>
-      </div>
-      <div class="plate-body">
-
-        <details class="fix" id="travels-fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">01</span>
-            <span class="nm">travels</span>
-            <span class="leader"></span>
-            <span class="dt" id="travel-count">—</span>
-          </summary>
-          <div class="log travel-log">
-            <div class="stamp travel-stamp">
-              <span>places i've been</span>
-              <span class="travel-toggle">
-                <button class="text-control on" id="tt-states" type="button" aria-label="show us states map" aria-pressed="true">[us states]</button>
-                <button class="text-control" id="tt-countries" type="button" aria-label="show world countries map" aria-pressed="false">[countries]</button>
-              </span>
-            </div>
-            <div class="travelmap">
-              <svg id="map-world" viewBox="0 35 1000 656" preserveAspectRatio="xMidYMid meet" hidden role="img" aria-label="world map of countries visited"></svg>
-              <svg id="map-states" viewBox="0 0 975 610" preserveAspectRatio="xMidYMid meet" role="img" aria-label="map of us states visited"></svg>
-              <div class="map-ctl">
-                <button class="text-control" id="mz-in" type="button" title="zoom in" aria-label="zoom in">+</button>
-                <button class="text-control" id="mz-out" type="button" title="zoom out" aria-label="zoom out">−</button>
-                <button class="text-control" id="mz-reset" type="button" title="reset view" aria-label="reset map view">⌂</button>
-              </div>
-              <div id="map-tip"></div>
-            </div>
-            <div class="log field-note" id="field-note" hidden>
-              <div class="stamp"><span id="fn-title">note</span><button class="text-control" id="fn-close" type="button">[close]</button></div>
-              <p id="fn-body"></p>
-            </div>
-          </div>
-        </details>
-
-        <details class="fix" id="digital-fix">
-          <summary>
-            <span class="mark">▸</span><span class="idx">02</span>
-            <span class="nm">recent activity</span>
-            <span class="leader"></span>
-            <span class="dt">via github</span>
-          </summary>
-          <div class="log">
-            <div class="stamp travel-stamp">
-              <span>latest from github</span>
-              <span class="lb-clock"><a href="https://github.com/TaoTDM" target="_blank" rel="noreferrer">@taotdm</a></span>
-            </div>
-            <div id="gh-rows"><div id="gh-status">loading…</div></div>
-          </div>
-        </details>
-
-      </div>
-    </section>
-
-    <!-- paths away from this page -->
-    <footer class="legend reveal">
-      <div class="legend-head">
-        <div class="legend-cap">Elsewhere</div>
-        <span class="legend-bearing">paths beyond the map</span>
-      </div>
-      <nav class="elsewhere-links" aria-label="Elsewhere">
-        <a class="waypoint" href="https://github.com/TaoTDM" target="_blank" rel="noreferrer">
-          <span class="waypoint-index">i</span>
-          <span class="waypoint-name">github</span>
-          <span class="waypoint-leader" aria-hidden="true"></span>
-          <span class="waypoint-note">made in mist</span>
-        </a>
-        <a class="waypoint" href="https://www.linkedin.com/in/shi-tao-chang/" target="_blank" rel="noreferrer">
-          <span class="waypoint-index">ii</span>
-          <span class="waypoint-name">linkedin</span>
-          <span class="waypoint-leader" aria-hidden="true"></span>
-          <span class="waypoint-note">the marked trail</span>
-        </a>
-        <a class="waypoint" id="email-link-2">
-          <span class="waypoint-index">iii</span>
-          <span class="waypoint-name">email</span>
-          <span class="waypoint-leader" aria-hidden="true"></span>
-          <span class="waypoint-note">fireside chats</span>
-        </a>
-      </nav>
-      <div class="colophon">
-        <span>by shi-tao chang · 2026</span>
-        <span class="music-credit">music · <a href="https://www.youtube.com/c/ibiBerlin" target="_blank" rel="noreferrer">ibi</a> / <a href="https://c418.org/" target="_blank" rel="noreferrer">c418</a> · <a href="https://www.youtube.com/c/@SLSMusic" target="_blank" rel="noreferrer">SLSMusic</a></span>
-      </div>
-    </footer>
-
-    </div><!-- /.column -->
+    <!-- button per spark -->
+    <div class="a11y" id="sparks" aria-label="sparks"></div>
   </main>
 
-  <div id="toast">address copied</div>
+  <div id="toast" aria-live="polite"></div>
 
-  <!-- command palette. open it with the / key or cmd+k. -->
-  <div id="helm-overlay" class="overlay">
-    <div id="helm" role="dialog" aria-label="command palette">
-      <div id="helm-head"><span class="prompt">◈</span><input id="helm-input" type="text" placeholder="search…" autocomplete="off" spellcheck="false" aria-label="command palette input"></div>
-      <div id="helm-list"></div>
-      <div id="helm-empty">nothing found.</div>
-      <div id="helm-hint">↑↓ move · ⏎ open · esc close</div>
-    </div>
-  </div>
+  <!-- print -->
+  <article class="paper" id="paper" aria-hidden="true"></article>
 
-<script type="module" src="/assets/site.js?v=20260806-4"></script>
+  <script type="module" src="/src/main.js"></script>
 </body>
 </html>
