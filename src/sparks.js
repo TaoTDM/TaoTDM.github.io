@@ -55,7 +55,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       omega: .06 + Math.random() * .05, rphase: Math.random() * 7,
       f1: .09 + Math.random() * .12, f2: .17 + Math.random() * .16,
       p1: Math.random() * 7, p2: Math.random() * 7, p3: Math.random() * 7, p4: Math.random() * 7,
-      trail: [], gatherAt: 0
+      trail: [], gatherAt: 0, dragging: false
     };
     const b = document.createElement('button');
     b.type = 'button';
@@ -159,7 +159,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       const wantLabel = (s.hover || s.focused || mode === 'gather' || s.peek > 0) ? 1 : 0;
       s.alpha += (wantLabel - s.alpha) * fade;
       s.vis += ((s.absorbed ? 0 : 1) - s.vis) * fade;
-      if (s.absorbed || s.flying || s.focused || s.peek > 0) continue;
+      if (s.absorbed || s.flying || s.focused || s.peek > 0 || s.dragging) continue;
 
       let ax = 0, ay = 0;
       if (mode === 'gather') {
@@ -369,6 +369,39 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   }
 
   let pressed = null, pressTimer = null, peeked = false;
+  let drag = null, dragFrom = null, dragLast = null;
+  const DRAG_START = 7;
+  function startDrag(s, p) {
+    drag = s; s.dragging = true; s.hover = true; s.peek = 0;
+    clearTimeout(pressTimer); peeked = false;
+    dragLast = { x: p.x, y: p.y, t: performance.now() };
+    s.vx = 0; s.vy = 0;
+    canvas.classList.add('drag');
+  }
+  function moveDrag(p) {
+    const now = performance.now();
+    const dt = Math.max(.008, (now - dragLast.t) / 1000);
+    drag.vx = drag.vx * .6 + ((p.x - dragLast.x) / dt) * .4;
+    drag.vy = drag.vy * .6 + ((p.y - dragLast.y) / dt) * .4;
+    drag.x = Math.min(G.w - PAD, Math.max(PAD, p.x));
+    drag.y = Math.min(G.h - PAD, Math.max(PAD, p.y));
+    dragLast = { x: p.x, y: p.y, t: now };
+  }
+  function endDrag(p) {
+    const s = drag; drag = null;
+    s.dragging = false;
+    canvas.classList.remove('drag');
+    if (coarse) s.hover = false;
+    /* dropped into the box */
+    if (inside(p, { x: G.box.x, y: G.box.y, w: G.box.w + 40, h: G.box.h + 40 })) {
+      s.vx = 0; s.vy = 0;
+      pick(s);
+      return;
+    }
+    /* a throw, capped */
+    const sp = Math.hypot(s.vx, s.vy), cap = MAXV * 8;
+    if (sp > cap) { s.vx *= cap / sp; s.vy *= cap / sp; }
+  }
   const fingers = new Map();
   let pinchStart = null, pinching = false;
   const fingerDist = () => { const [a, b] = [...fingers.values()]; return Math.hypot(a.x - b.x, a.y - b.y); };
@@ -381,6 +414,10 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       if (d < -50 && mode !== 'gather') { if (on.pinch ? on.pinch(true) !== false : true) gather(true); pinchStart = null; }
       else if (d > 50 && mode === 'gather') { gather(false); pinchStart = null; }
       return;
+    }
+    if (drag) { moveDrag(p); return; }
+    if (pressed && dragFrom && Math.hypot(p.x - dragFrom.x, p.y - dragFrom.y) > DRAG_START && !peeked) {
+      startDrag(pressed, p); pressed = null; return;
     }
     const s = hit(p.x, p.y);
     let changed = false;
@@ -395,6 +432,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     if (e.pointerType === 'touch') {
       fingers.set(e.pointerId, p);
       if (fingers.size === 2) {
+        if (drag) { drag.dragging = false; drag.hover = false; drag = null; canvas.classList.remove('drag'); }
         pinching = true; pinchStart = fingerDist();
         clearTimeout(pressTimer);
         if (pressed) { pressed.peek = 0; pressed.hover = false; }
@@ -403,6 +441,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       }
     }
     pressed = hit(p.x, p.y);
+    dragFrom = p;
     peeked = false;
     clearTimeout(pressTimer);
     if (pressed) {
@@ -413,6 +452,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   function endPress(e) {
     clearTimeout(pressTimer);
     if (fingers.has(e.pointerId)) fingers.delete(e.pointerId);
+    if (drag) { endDrag(pos(e)); pressed = null; return; }
     if (pinching) { if (fingers.size === 0) pinching = false; pressed = null; return; }
     const s = pressed; pressed = null;
     if (!s) { if (e.type === 'pointerup' && on.empty) on.empty(); return; }

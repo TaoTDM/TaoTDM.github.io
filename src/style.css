@@ -40,7 +40,8 @@ html, body {
   -webkit-touch-callout: none;
   user-select: none;
 }
-#sky.hot { cursor: pointer; }
+#sky.hot { cursor: grab; }
+#sky.drag { cursor: grabbing; }
 
 /* the mark */
 .mark {
