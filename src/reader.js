@@ -118,16 +118,19 @@ export function createReader({ el, email, onToast, on = {} }) {
 
   /* tap swipe and hold */
   let sx = null, swiped = false, holdTimer = null, heldOut = false;
+  const selecting = () => (window.getSelection && String(window.getSelection())).length > 0;
   el.addEventListener('pointerdown', e => {
     sx = e.clientX; swiped = false; heldOut = false;
     clearTimeout(holdTimer);
-    if (node) holdTimer = setTimeout(() => { heldOut = true; release(); }, 550);
+    /* hold is off over the text so it can be selected */
+    if (node && !e.target.closest('.text')) holdTimer = setTimeout(() => { heldOut = true; release(); }, 550);
   });
   const endHold = () => clearTimeout(holdTimer);
   el.addEventListener('pointerup', e => {
     endHold();
     if (sx === null) return;
     const dx = e.clientX - sx; sx = null;
+    if (selecting()) { swiped = true; return; }
     if (!heldOut && Math.abs(dx) > 40) { swiped = true; dx < 0 ? next() : prev(); }
   });
   el.addEventListener('pointercancel', endHold);
@@ -136,6 +139,7 @@ export function createReader({ el, email, onToast, on = {} }) {
   el.addEventListener('click', e => {
     if (heldOut) { heldOut = false; return; }
     if (swiped) { swiped = false; return; }
+    if (selecting()) return;
     if (node && !e.target.closest('a, button')) next();
   });
 
