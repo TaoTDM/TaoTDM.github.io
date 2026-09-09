@@ -1,9 +1,10 @@
 /* wiring */
 
-import { TREE, SOUND_SPARK, EMAIL, NAME, TAGLINE } from './content.js';
+import { TREE, SETTINGS, EMAIL, NAME, TAGLINE } from './content.js';
 import { createSparks } from './sparks.js';
 import { createReader } from './reader.js';
 import { createSound } from './sound.js';
+import { createTheme } from './theme.js';
 import { buildPaper } from './paper.js';
 
 const field = document.getElementById('void');
@@ -24,6 +25,18 @@ function toast(word) {
 }
 
 const sound = createSound();
+const theme = createTheme();
+
+/* settings pages */
+function metaFor(item) {
+  if (item.action === 'toggle-theme') return theme.night ? 'night' : 'day';
+  if (item.action === 'toggle-sound') return sound.enabled ? 'on' : 'off';
+  return null;
+}
+function doAction(item) {
+  if (item.action === 'toggle-theme') { theme.toggle(); sparks.setTheme(theme.current); sound.play('page'); }
+  if (item.action === 'toggle-sound') sound.toggle();
+}
 
 /* url hash state */
 let silent = false;
@@ -37,14 +50,14 @@ let held = null;       /* spark in box */
 let pending = null;    /* spark in flight */
 
 const reader = createReader({
-  el: readerEl, email: EMAIL, onToast: toast,
+  el: readerEl, email: EMAIL, onToast: toast, onAction: doAction, metaFor,
   on: {
     read: (node, index) => {
       document.title = node.label + ' · tao';
       if (!pending?.quiet) writeHash(node.id + (index ? '/' + (index + 1) : ''), true);
       pending = null;
     },
-    step: (node, index) => { sound.play('page'); writeHash(node.id + '/' + (index + 1), false); },
+    step: (node, index, dir) => { sound.play(dir < 0 ? 'back' : 'page'); writeHash(node.id + '/' + (index + 1), false); },
     release: () => {
       document.title = 'tao';
       writeHash('', false);
@@ -55,10 +68,9 @@ const reader = createReader({
 });
 
 const sparks = createSparks({
-  canvas, field, mark, box, buttons, tree: [...TREE, SOUND_SPARK],
+  canvas, field, mark, box, buttons, tree: [...TREE, SETTINGS],
   on: {
     select: s => select(s),
-    action: s => { if (s.node.action === 'toggle-sound') toggleSound(); },
     land: s => {
       /* spark lands */
       box.classList.add('hot');
@@ -70,6 +82,7 @@ const sparks = createSparks({
       reader.read(s.node, pending ? pending.page : 0);
     },
     empty: () => { if (held) reader.release(); },
+    swipe: dir => { if (reader.node) dir > 0 ? reader.next() : reader.prev(); },
     gather: on => sound.play(on ? 'gather' : 'scatter'),
     pinch: () => !held,
     hover: s => { if (s) sound.play('hover'); }
@@ -80,12 +93,7 @@ function select(s, page = 0, quiet = false) {
   if (sparks.absorb(s)) { pending = { page, quiet }; sound.play('select'); }
 }
 
-/* sound spark */
-const soundSpark = sparks.byId(SOUND_SPARK.id);
-sparks.setOff(soundSpark, !sound.enabled);
-function toggleSound() {
-  sparks.setOff(soundSpark, !sound.toggle());
-}
+sparks.setTheme(theme.current);
 
 /* box tap and hold */
 let boxHold = null, boxHeld = false;
@@ -104,11 +112,24 @@ box.addEventListener('click', () => {
   if (reader.node) reader.next(); else sparks.gather(!sparks.gathered);
 });
 
+/* trackpad and mouse wheel, sideways */
+let wheelSum = 0, wheelCool = 0;
+addEventListener('wheel', e => {
+  if (!reader.node) return;
+  const now = performance.now();
+  if (now < wheelCool) return;
+  wheelSum += e.deltaX;
+  if (Math.abs(wheelSum) > 60) {
+    wheelSum > 0 ? reader.next() : reader.prev();
+    wheelSum = 0; wheelCool = now + 500;
+  }
+}, { passive: true });
+
 addEventListener('keydown', e => {
   if (e.key === 'Escape' && reader.node) reader.release();
   if (e.key === 'ArrowRight' && reader.node) reader.next();
   if (e.key === 'ArrowLeft' && reader.node) reader.prev();
-  if (e.key === 'm' || e.key === 'M') toggleSound();
+  if (e.key === 'm' || e.key === 'M') sound.toggle();
 });
 
 function applyHash() {
@@ -126,3 +147,8 @@ addEventListener('hashchange', applyHash);
 if (location.hash) applyHash();
 
 buildPaper(document.getElementById('paper'), { name: NAME, tagline: TAGLINE, tree: TREE, email: EMAIL });
+
+/* offline cache, production only */
+if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+  addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}

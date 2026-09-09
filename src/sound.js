@@ -1,13 +1,14 @@
 /* sounds */
 
 const VOLUME = .08;
-const FILES = ['select', 'land', 'page', 'release', 'gather', 'scatter', 'hover'];
+const FILES = ['select', 'land', 'page', 'back', 'release', 'gather', 'scatter', 'hover'];
 
 /* synth patches */
 const PATCH = {
   select:  { wave: 'square', steps: [[660, .04], [990, .05]] },
   land:    { wave: 'square', steps: [[330, .03], [220, .06]] },
   page:    { wave: 'square', steps: [[1320, .02]] },
+  back:    { wave: 'square', steps: [[990, .025]] },
   release: { wave: 'square', steps: [[880, .04], [440, .06]] },
   gather:  { wave: 'square', steps: [[523, .05], [659, .05], [784, .07]] },
   scatter: { wave: 'square', steps: [[784, .05], [659, .05], [523, .07]] },

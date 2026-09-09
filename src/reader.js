@@ -1,6 +1,6 @@
 /* reader */
 
-export function createReader({ el, email, onToast, on = {} }) {
+export function createReader({ el, email, onToast, onAction, metaFor, on = {} }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const IDLE_HTML = el.innerHTML;
 
@@ -46,15 +46,26 @@ export function createReader({ el, email, onToast, on = {} }) {
       inner = document.createElement('button');
       inner.type = 'button';
       inner.addEventListener('click', e => { e.stopPropagation(); copyEmail(); });
+    } else if (p.item.action) {
+      /* a setting. click toggles it, the meta shows its state */
+      inner = document.createElement('button');
+      inner.type = 'button';
+      inner.addEventListener('click', e => {
+        e.stopPropagation();
+        onAction && onAction(p.item);
+        const m = text.querySelector('.meta');
+        if (m && metaFor) m.textContent = metaFor(p.item);
+      });
     } else {
       inner = document.createElement('span');
     }
     inner.textContent = p.item.label;
     text.appendChild(inner);
-    if (p.item.meta) {
+    const meta = p.item.meta || (p.item.action && metaFor ? metaFor(p.item) : null);
+    if (meta) {
       const m = document.createElement('small');
       m.className = 'meta';
-      m.textContent = p.item.meta;
+      m.textContent = meta;
       text.appendChild(m);
     }
     d.appendChild(text);
@@ -96,9 +107,10 @@ export function createReader({ el, email, onToast, on = {} }) {
 
   function go(i) {
     if (!node || swapping || i === index || i < 0 || i >= pages.length) return;
+    const dir = i > index ? 1 : -1;
     index = i;
     show(pageEl(pages[index], index, pages.length));
-    on.step && on.step(node, index);
+    on.step && on.step(node, index, dir);
   }
 
   /* release past end */

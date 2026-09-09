@@ -1,6 +1,6 @@
 # taotdm.com
 
-a white field, one mark, six drifting pixels, tap a pixel to read it
+a white field, one mark, six drifting pixels, tap a pixel to read it. one pixel holds the theme and sound settings
 
 ```sh
 npm install

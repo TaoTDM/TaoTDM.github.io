@@ -10,8 +10,15 @@ export const LINKS = {
 /* email joined at runtime */
 export const EMAIL = ['tao', 'taotdm.com'].join('@');
 
-/* sound switch spark */
-export const SOUND_SPARK = { id: 'sound', label: 'sound', action: 'toggle-sound' };
+/* settings spark */
+export const SETTINGS = {
+  id: 'settings',
+  label: 'theme settings',
+  children: [
+    { label: 'choose theme', action: 'toggle-theme' },
+    { label: 'sound', action: 'toggle-sound' }
+  ]
+};
 
 /* content tree */
 export const TREE = [
@@ -31,8 +38,8 @@ export const TREE = [
     ]
   },
   {
-    id: 'experience',
-    label: 'experience',
+    id: 'research',
+    label: 'research',
     children: [
       {
         label: 'research assistant, GISense Lab',
@@ -41,15 +48,6 @@ export const TREE = [
           { label: 'reproduced and fine-tuned baseline models to generate landscapes from sound.' },
           { label: 'developed and evaluated raw video and EEG/MEG/fMRI datasets.' },
           { label: 'currently engineering multimodal brain-to-image models for human-centered applications.' }
-        ]
-      },
-      {
-        label: 'backend/ml engineer, TX Luminescence',
-        meta: 'sep 2025 to present',
-        children: [
-          { label: 'developed back-end architecture for an ai-powered educational app for k-12 learning.' },
-          { label: 'integrated an ai model with rag to improve app function and learning outcomes.' },
-          { label: 'engineered authentication and api endpoints for a student organization listing website.' }
         ]
       }
     ]

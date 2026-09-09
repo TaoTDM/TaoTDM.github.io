@@ -7,6 +7,9 @@
   --sans: 'Libre Franklin', 'Franklin Gothic Medium', 'Helvetica Neue', Arial, sans-serif;
 }
 
+/* nights */
+:root[data-theme="night"] { --paper: #000; --ink: #fff; }
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -15,6 +18,7 @@ html, body {
   overflow: hidden;
   background: var(--paper);
   color: var(--ink);
+  transition: background 600ms, color 600ms;
   font-family: var(--serif);
   font-size: 16px;
   line-height: 1.3;
@@ -70,14 +74,21 @@ html, body {
   font-size: 2rem;
   line-height: 1;
   cursor: pointer;
+  position: relative;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
-  transition: background 120ms, color 120ms;
+  transition: background 120ms, color 120ms, box-shadow 600ms;
 }
 .mark-box span { display: block; }
-/* box flash */
-.mark-box.hot { background: var(--ink); color: var(--paper); }
+
+/* night: the box is a lit window. its light falls out and down on the canvas */
+:root[data-theme="night"] .mark-box {
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: 0 0 30px rgba(255, 255, 255, .35), 0 0 120px rgba(255, 255, 255, .14);
+}
+:root[data-theme="night"] .mark-box.hot { background: var(--paper); color: var(--ink); }
 
 /* the reader */
 .reader {
@@ -106,7 +117,7 @@ html, body {
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 5px;
-  text-decoration-color: rgba(0, 0, 0, .35);
+  text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
 }
 .page.idle a:hover, .page.idle a:focus-visible { text-decoration-color: var(--ink); }
 

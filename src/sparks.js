@@ -5,7 +5,8 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
 
-  const INK = '#000';
+  let INK = '#000';
+  let night = false;
   const PX = coarse ? 4 : 3;          /* pixel size */
   const PAD = 24;                     /* edge padding */
   const HIT = coarse ? 26 : 18;       /* tap radius */
@@ -55,7 +56,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       omega: .06 + Math.random() * .05, rphase: Math.random() * 7,
       f1: .09 + Math.random() * .12, f2: .17 + Math.random() * .16,
       p1: Math.random() * 7, p2: Math.random() * 7, p3: Math.random() * 7, p4: Math.random() * 7,
-      trail: [], gatherAt: 0, dragging: false
+      trail: [], gatherAt: 0, dragging: false, whisper: false, lit: 0
     };
     const b = document.createElement('button');
     b.type = 'button';
@@ -63,22 +64,45 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     b.addEventListener('focus', () => { s.focused = true; });
     b.addEventListener('blur', () => { s.focused = false; });
     b.addEventListener('click', () => pick(s));
-    if (node.action) b.setAttribute('aria-pressed', 'true');
     buttons.appendChild(b);
     s.button = b;
     return s;
   });
 
   /* tap on spark */
-  function pick(s) {
-    if (s.node.action) { on.action && on.action(s); return; }
-    on.select && on.select(s);
+  function pick(s) { on.select && on.select(s); }
+
+  /* day or night */
+  function setTheme(name) {
+    night = name === 'night';
+    INK = night ? '#fff' : '#000';
   }
 
-  /* hollow when off */
-  function setOff(s, off) {
-    s.off = !!off;
-    s.button.setAttribute('aria-pressed', String(!s.off));
+  /* window light. the window's shape thrown on the ground: the box's width at the sill,
+     wider and dimmer farther down. sway is a sideways drift of the far edge, like a
+     lamp moving in the room. power breathes. */
+  const LIGHT = { x: 0, y: 0, w: 0, reach: 1, shift: 0, power: 1, widen: 2.6 };
+  function updateLight() {
+    LIGHT.x = G.box.x;
+    LIGHT.y = G.box.y + G.box.h / 2 - 1;
+    LIGHT.w = G.box.w;
+    LIGHT.reach = G.h - LIGHT.y + 40;
+    LIGHT.shift = LIGHT.reach * (.28 * Math.sin(t * .09) + .08 * Math.sin(t * .23 + 1.7));
+    LIGHT.power = .6 + .4 * Math.sin(t * .13 + .6) * Math.sin(t * .05 + 2);
+  }
+  /* center and half width of the light at a depth below the sill */
+  function lightAt(dy) {
+    const k = Math.max(0, Math.min(1, dy / LIGHT.reach));
+    return { cx: LIGHT.x + LIGHT.shift * k, hw: LIGHT.w / 2 * (1 + (LIGHT.widen - 1) * k), k };
+  }
+  /* how much window light reaches a point, 0 to 1 */
+  function litAt(x, y) {
+    const dy = y - LIGHT.y;
+    if (dy < 0) return 0;
+    const { cx, hw, k } = lightAt(dy);
+    const across = 1 - Math.min(1, Math.abs(x - cx) / (hw * 1.15));
+    const along = 1 - k * .8;
+    return LIGHT.power * across * across * along;
   }
 
   /* label right bound */
@@ -143,6 +167,23 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     push({ x1: m.x - m.w / 2, x2: m.x + m.w / 2, y1: m.y - m.h / 2, y2: m.y + m.h / 2 }, scale * 1.5);
   }
 
+  /* idle whisper. after a quiet minute one spark shows its label for a moment */
+  const IDLE = 60000, WHISPER = 1800;
+  let lastTouch = performance.now(), lastWhisper = 0;
+  function touched() { lastTouch = performance.now(); }
+  addEventListener('pointerdown', touched, { passive: true });
+  addEventListener('pointermove', touched, { passive: true });
+  addEventListener('keydown', touched);
+  function whisper(now) {
+    if (now - lastTouch < IDLE || now - lastWhisper < IDLE) return;
+    const free = sparks.filter(s => !s.absorbed && !s.flying);
+    if (!free.length) return;
+    const s = free[Math.floor(Math.random() * free.length)];
+    s.whisper = true;
+    lastWhisper = now;
+    setTimeout(() => { s.whisper = false; }, WHISPER);
+  }
+
   /* motion loop */
   let mode = 'drift';
   let last = performance.now();
@@ -155,8 +196,12 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     const fade = 1 - Math.exp(-dt * 12);
     const left = w * .12, top = h * .12, bottom = h * .88;
 
+    if (night) updateLight();
+    whisper(now);
     for (const s of sparks) {
-      const wantLabel = (s.hover || s.focused || mode === 'gather' || s.peek > 0) ? 1 : 0;
+      /* light on this spark, 0 to 1 */
+      s.lit = night && !s.absorbed ? Math.min(1, litAt(s.x, s.y) * 1.6) : 0;
+      const wantLabel = (s.hover || s.focused || s.whisper || mode === 'gather' || s.peek > 0) ? 1 : s.lit;
       s.alpha += (wantLabel - s.alpha) * fade;
       s.vis += ((s.absorbed ? 0 : 1) - s.vis) * fade;
       if (s.absorbed || s.flying || s.focused || s.peek > 0 || s.dragging) continue;
@@ -214,8 +259,33 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     requestAnimationFrame(step);
   }
 
+  /* the light on the ground */
+  function drawLight() {
+    const L = LIGHT;
+    const far = lightAt(L.reach);
+    const g = ctx.createLinearGradient(0, L.y, 0, L.y + L.reach);
+    g.addColorStop(0, 'rgba(255,255,255,' + (.22 * L.power) + ')');
+    g.addColorStop(.35, 'rgba(255,255,255,' + (.1 * L.power) + ')');
+    g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g;
+    /* soft edges: nested shapes, each a little wider and fainter */
+    for (let i = 0; i < 4; i++) {
+      const e = 1 + i * .12;
+      ctx.globalAlpha = 1 - i * .22;
+      ctx.beginPath();
+      ctx.moveTo(L.x - L.w / 2 * e, L.y);
+      ctx.lineTo(L.x + L.w / 2 * e, L.y);
+      ctx.lineTo(far.cx + far.hw * e, L.y + L.reach);
+      ctx.lineTo(far.cx - far.hw * e, L.y + L.reach);
+      ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function draw() {
     ctx.clearRect(0, 0, G.w, G.h);
+    if (night) drawLight();
     ctx.fillStyle = INK;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
@@ -232,11 +302,22 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
         }
       }
       if (s.vis < .01) continue;
-      ctx.globalAlpha = s.vis;
+      let glow = 1;
+      if (night) {
+        /* firefly glow */
+        glow = (.55 + .45 * Math.sin(now / 1000 * (1.5 + s.f2 * 4) + s.p2)) * (.7 + .6 * s.lit);
+        const g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 12);
+        g.addColorStop(0, 'rgba(255,255,255,' + (.45 * glow * s.vis) + ')');
+        g.addColorStop(1, 'rgba(255,255,255,0)');
+        ctx.fillStyle = g;
+        ctx.fillRect(s.x - 12, s.y - 12, 24, 24);
+        ctx.fillStyle = INK;
+      }
+      ctx.globalAlpha = s.vis * (night ? .6 + .4 * glow : 1);
       /* snapped pixel */
       const px = Math.round((s.x - PX / 2) / q) * q, py = Math.round((s.y - PX / 2) / q) * q;
       ctx.fillRect(px, py, PX, PX);
-      if (s.off) ctx.clearRect(px + q, py + q, PX - 2 * q, PX - 2 * q);
+      ctx.globalAlpha = s.vis;
       if (s.alpha < .01) continue;
       ctx.globalAlpha = s.vis * s.alpha;
       const lx = s.x + 10;
@@ -294,7 +375,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
 
   /* fly into box */
   function absorb(s) {
-    if (s.absorbed || s.flying || s.node.action) return false;
+    if (s.absorbed || s.flying) return false;
     if (mode === 'gather') gather(false, true);
     s.hover = false; s.peek = 0;
     s.button.blur();
@@ -455,7 +536,15 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     if (drag) { endDrag(pos(e)); pressed = null; return; }
     if (pinching) { if (fingers.size === 0) pinching = false; pressed = null; return; }
     const s = pressed; pressed = null;
-    if (!s) { if (e.type === 'pointerup' && on.empty) on.empty(); return; }
+    if (!s) {
+      if (e.type !== 'pointerup') return;
+      const p = pos(e);
+      const dx = dragFrom ? p.x - dragFrom.x : 0;
+      /* a swipe on the void turns the page, a tap lets go */
+      if (Math.abs(dx) > 40) { on.swipe && on.swipe(dx < 0 ? 1 : -1); return; }
+      on.empty && on.empty();
+      return;
+    }
     s.peek = 0;
     if (coarse) s.hover = false;
     if (!peeked && e.type === 'pointerup') pick(s);
@@ -475,7 +564,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   return {
     sparks,
     byId: id => sparks.find(s => s.node.id === id) || null,
-    absorb, emit, gather, setOff,
+    absorb, emit, gather, setTheme,
     get gathered() { return mode === 'gather'; }
   };
 }
