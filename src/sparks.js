@@ -37,7 +37,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     const page = reader.querySelector('.page');
     let l = b.left, r = b.right, tp = b.top, bt = b.bottom;
     if (page) {
-      for (const el of page.querySelectorAll('span, a, p, small, .pips')) {
+      for (const el of [...page.querySelectorAll('span, a, p, small'), ...reader.querySelectorAll('.pips')]) {
         const c = el.getBoundingClientRect();
         if (!c.width) continue;
         r = Math.max(r, c.right); tp = Math.min(tp, c.top); bt = Math.max(bt, c.bottom);

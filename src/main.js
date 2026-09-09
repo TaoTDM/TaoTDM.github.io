@@ -124,10 +124,13 @@ box.addEventListener('click', () => {
 /* trackpad and mouse wheel, sideways */
 let wheelSum = 0, wheelCool = 0;
 addEventListener('wheel', e => {
-  if (!reader.node) return;
+  if (!reader.node || pending) return;
+  /* a long line that scrolls inside its box keeps the wheel */
+  const text = e.target.closest && e.target.closest('.text');
+  if (text && text.scrollHeight > text.clientHeight + 1) return;
   const now = performance.now();
   if (now < wheelCool) return;
-  wheelSum += e.deltaX;
+  wheelSum += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
   if (Math.abs(wheelSum) > 60) {
     wheelSum > 0 ? reader.next() : reader.prev();
     wheelSum = 0; wheelCool = now + 500;

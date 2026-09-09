@@ -6,6 +6,34 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
 
   let node = null, pages = [], index = 0, swapping = false;
 
+  /* one row of pips for the whole reader. it stays put while pages swap */
+  const pips = document.createElement('div');
+  pips.className = 'pips';
+  pips.hidden = true;
+  el.appendChild(pips);
+  function renderPips(n, i) {
+    if (pips.childElementCount !== n + 1) {
+      pips.innerHTML = '';
+      for (let k = 0; k < n; k++) {
+        const pip = document.createElement('button');
+        pip.type = 'button';
+        pip.setAttribute('aria-label', 'page ' + (k + 1));
+        pip.addEventListener('click', e => { e.stopPropagation(); go(k); });
+        pips.appendChild(pip);
+      }
+      /* one more, faint, that closes the section */
+      const end = document.createElement('button');
+      end.type = 'button';
+      end.className = 'end';
+      end.setAttribute('aria-label', 'close');
+      end.addEventListener('click', e => { e.stopPropagation(); release(); });
+      pips.appendChild(end);
+    }
+    [...pips.children].forEach((b, k) => b.classList.toggle('on', k === i));
+    pips.setAttribute('aria-label', 'page ' + (i + 1) + ' of ' + n);
+    pips.hidden = false;
+  }
+
   /* flatten to pages */
   function pagesOf(section) {
     const out = [];
@@ -69,26 +97,7 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
       text.appendChild(m);
     }
     d.appendChild(text);
-
-    const pips = document.createElement('div');
-    pips.className = 'pips';
-    pips.setAttribute('aria-label', 'page ' + (i + 1) + ' of ' + n);
-    for (let k = 0; k < n; k++) {
-      const pip = document.createElement('button');
-      pip.type = 'button';
-      pip.setAttribute('aria-label', 'page ' + (k + 1));
-      if (k === i) pip.className = 'on';
-      pip.addEventListener('click', e => { e.stopPropagation(); go(k); });
-      pips.appendChild(pip);
-    }
-    /* one more, faint, that closes the section */
-    const end = document.createElement('button');
-    end.type = 'button';
-    end.className = 'end';
-    end.setAttribute('aria-label', 'close');
-    end.addEventListener('click', e => { e.stopPropagation(); release(); });
-    pips.appendChild(end);
-    d.appendChild(pips);
+    renderPips(n, i);
     return d;
   }
 
@@ -141,6 +150,7 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
     if (!node) return;
     const was = node;
     node = null; pages = []; index = 0;
+    pips.hidden = true;
     show(idlePage(), () => on.release && on.release(was));
   }
 
