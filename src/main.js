@@ -49,6 +49,8 @@ function writeHash(h, push) {
 
 let held = null;       /* spark in box */
 let pending = null;    /* spark in flight */
+let quietUntil = 0;    /* short guard after a landing */
+const settled = () => performance.now() > quietUntil;
 
 const reader = createReader({
   el: readerEl, email: EMAIL, onToast: toast, onAction: doAction, metaFor,
@@ -76,6 +78,7 @@ const sparks = createSparks({
     select: s => select(s),
     land: s => {
       /* spark lands */
+      quietUntil = performance.now() + 300;
       box.classList.add('hot');
       setTimeout(() => box.classList.remove('hot'), 180);
       sound.play('land');
@@ -84,7 +87,7 @@ const sparks = createSparks({
       if (prev && prev !== s) sparks.emit(prev);
       reader.read(s.node, pending ? pending.page : 0);
     },
-    empty: () => { if (held) reader.release(); },
+    empty: () => { if (held && !pending && settled()) reader.release(); },
     swipe: dir => { if (reader.node) dir > 0 ? reader.next() : reader.prev(); },
     gather: on => sound.play(on ? 'gather' : 'scatter'),
     pinch: () => !held,
@@ -93,6 +96,8 @@ const sparks = createSparks({
 });
 
 function select(s, page = 0, quiet = false) {
+  /* one flight at a time */
+  if (pending) return;
   if (sparks.absorb(s)) { pending = { page, quiet }; sound.play('select'); }
 }
 
@@ -112,6 +117,7 @@ box.addEventListener('pointerleave', endBoxHold);
 box.addEventListener('contextmenu', e => e.preventDefault());
 box.addEventListener('click', () => {
   if (boxHeld) { boxHeld = false; return; }
+  if (pending || !settled()) return;
   if (reader.node) reader.next(); else sparks.gather(!sparks.gathered);
 });
 
@@ -129,6 +135,7 @@ addEventListener('wheel', e => {
 }, { passive: true });
 
 addEventListener('keydown', e => {
+  if (pending) return;
   if (e.key === 'Escape' && reader.node) reader.release();
   if (e.key === 'ArrowRight' && reader.node) reader.next();
   if (e.key === 'ArrowLeft' && reader.node) reader.prev();

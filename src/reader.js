@@ -92,19 +92,25 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
     return d;
   }
 
-  /* swap page */
+  /* swap page. a swap that arrives mid fade settles the previous one first */
+  let pending = null;
   function show(next, after) {
-    const old = el.querySelector('.page');
+    if (pending) { clearTimeout(pending.timer); pending.finish(); }
+    const olds = [...el.querySelectorAll('.page')];
     swapping = true;
     const finish = () => {
-      old && old.remove();
+      pending = null;
+      olds.forEach(o => o.remove());
       next.classList.add('in');
       el.appendChild(next);
       el.classList.toggle('reading', pages.length > 0);
       swapping = false;
       after && after();
     };
-    if (old && !reduce) { old.classList.add('out'); setTimeout(finish, 160); } else finish();
+    if (olds.length && !reduce) {
+      olds.forEach(o => o.classList.add('out'));
+      pending = { finish, timer: setTimeout(finish, 160) };
+    } else finish();
   }
 
   function read(section, startPage = 0) {
