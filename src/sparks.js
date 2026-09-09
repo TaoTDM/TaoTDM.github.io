@@ -1,6 +1,6 @@
 /* canvas sparks */
 
-export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} }) {
+export function createSparks({ canvas, field, mark, box, reader, buttons, tree, on = {} }) {
   const ctx = canvas.getContext('2d');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
@@ -30,6 +30,21 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     const r = el.getBoundingClientRect(), f = field.getBoundingClientRect();
     return { x: r.left - f.left + r.width / 2, y: r.top - f.top + r.height / 2, w: r.width + pad, h: r.height + pad };
   }
+  /* the box and the text now showing, not the whole mark */
+  function visibleRect(pad) {
+    const f = field.getBoundingClientRect();
+    const b = box.getBoundingClientRect();
+    const page = reader.querySelector('.page');
+    let l = b.left, r = b.right, tp = b.top, bt = b.bottom;
+    if (page) {
+      for (const el of page.querySelectorAll('span, a, p, small, .pips')) {
+        const c = el.getBoundingClientRect();
+        if (!c.width) continue;
+        r = Math.max(r, c.right); tp = Math.min(tp, c.top); bt = Math.max(bt, c.bottom);
+      }
+    }
+    return { x: (l + r) / 2 - f.left, y: (tp + bt) / 2 - f.top, w: r - l + pad, h: bt - tp + pad };
+  }
   function measure() {
     G.w = field.clientWidth;
     G.h = field.clientHeight;
@@ -37,8 +52,8 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     canvas.width = Math.round(G.w * G.dpr);
     canvas.height = Math.round(G.h * G.dpr);
     ctx.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
-    G.mark = rectOf(mark, 110);
-    G.seed = rectOf(mark, 140);
+    G.mark = visibleRect(110);
+    G.seed = visibleRect(140);
     G.box = rectOf(box, 0);
     G.R = Math.min(G.w, G.h) * .38;
   }
@@ -167,6 +182,20 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     push({ x1: m.x - m.w / 2, x2: m.x + m.w / 2, y1: m.y - m.h / 2, y2: m.y + m.h / 2 }, scale * 1.5);
   }
 
+  /* first visit. one label blooms once, a few seconds in */
+  function remember(key) {
+    try { if (localStorage.getItem(key)) return true; localStorage.setItem(key, '1'); return false; } catch { return true; }
+  }
+  if (!remember('tao.seen')) {
+    setTimeout(() => {
+      const free = sparks.filter(s => !s.absorbed && !s.flying && !s.node.control);
+      if (!free.length) return;
+      const s = free[Math.floor(Math.random() * free.length)];
+      s.whisper = true;
+      setTimeout(() => { s.whisper = false; }, 2200);
+    }, 4500);
+  }
+
   /* idle whisper. after a quiet minute one spark shows its label for a moment */
   const IDLE = 60000, WHISPER = 1800;
   let lastTouch = performance.now(), lastWhisper = 0;
@@ -192,7 +221,8 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     const dt = Math.min(.05, (now - last) / 1000);
     last = now; t += dt;
     const w = G.w, h = G.h, m = G.mark, R = G.R;
-    const wide = w > h ? 1.3 : 1;
+    /* a circle, or a tall ellipse on a narrow screen */
+    const wide = 1, tall = w > h ? 1 : 1.25;
     const fade = 1 - Math.exp(-dt * 12);
     const left = w * .12, top = h * .12, bottom = h * .88;
 
@@ -211,7 +241,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       let ax = 0, ay = 0;
       if (mode === 'gather') {
         /* orbit flow field */
-        const ex = (s.x - m.x) / wide, ey = s.y - m.y;
+        const ex = (s.x - m.x) / wide, ey = (s.y - m.y) / tall;
         const dist = Math.hypot(ex, ey) || 1;
         const ux = ex / dist, uy = ey / dist;
         const r = R * (1 + .07 * Math.sin(t * .3 + s.rphase));
@@ -221,7 +251,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
         /* desired velocity: inward or outward to the ring, plus along the ring */
         const vr = Math.max(-90, Math.min(90, (r - dist) * RADIAL));
         const vt = s.omega * r + Math.max(-60, Math.min(60, err * ANGULAR));
-        const dvx = (ux * vr - uy * vt) * wide, dvy = uy * vr + ux * vt;
+        const dvx = (ux * vr - uy * vt) * wide, dvy = (uy * vr + ux * vt) * tall;
         const ramp = Math.min(1, (t - s.gatherAt) / 1.4);
         const gain = FOLLOW * (.25 + .75 * ramp * ramp);
         ax += (dvx - s.vx) * gain;
@@ -316,9 +346,10 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
         ctx.fillStyle = INK;
       }
       ctx.globalAlpha = s.vis * (night ? .6 + .4 * glow : 1);
-      /* snapped pixel */
+      /* snapped pixel, hollow for a control */
       const px = Math.round((s.x - PX / 2) / q) * q, py = Math.round((s.y - PX / 2) / q) * q;
       ctx.fillRect(px, py, PX, PX);
+      if (s.node.control) ctx.clearRect(px + q, py + q, PX - 2 * q, PX - 2 * q);
       ctx.globalAlpha = s.vis;
       if (s.alpha < .01) continue;
       ctx.globalAlpha = s.vis * s.alpha;
@@ -411,7 +442,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     if (!free.length) return;
     const m = G.mark;
     const TAU = Math.PI * 2;
-    const withAngle = free.map(s => ({ s, a: Math.atan2(s.y - m.y, (s.x - m.x) / (G.w > G.h ? 1.3 : 1)) }))
+    const withAngle = free.map(s => ({ s, a: Math.atan2((s.y - m.y) / (G.w > G.h ? 1 : 1.25), s.x - m.x) }))
       .sort((p, q) => p.a - q.a);
     const gap = TAU / withAngle.length;
     /* circular mean offset */
@@ -425,11 +456,18 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     });
   }
 
+  /* the first gather holds a few seconds so the words can be read */
+  let gatherSince = 0, firstGather = true, scatterTimer = null;
   function gather(onOff, quiet) {
     const next = onOff ? 'gather' : 'drift';
     if (next === mode) return;
+    if (next === 'drift' && firstGather) {
+      const wait = 4000 - (performance.now() - gatherSince);
+      if (wait > 0) { clearTimeout(scatterTimer); scatterTimer = setTimeout(() => gather(false, quiet), wait); return; }
+      firstGather = false;
+    }
     mode = next;
-    if (mode === 'gather') assignOrbits();
+    if (mode === 'gather') { assignOrbits(); gatherSince = performance.now(); if (firstGather && remember('tao.gathered')) firstGather = false; }
     if (mode === 'drift') for (const s of sparks) if (!s.absorbed) nudge(s);
     if (!quiet && on.gather) on.gather(mode === 'gather');
   }
@@ -583,7 +621,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   return {
     sparks,
     byId: id => sparks.find(s => s.node.id === id) || null,
-    absorb, emit, gather, setTheme,
+    absorb, emit, gather, setTheme, measure,
     get gathered() { return mode === 'gather'; }
   };
 }

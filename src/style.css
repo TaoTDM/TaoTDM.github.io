@@ -52,7 +52,8 @@ html, body {
   position: absolute;
   left: 50%;
   top: 50%;
-  transform: translate(-50%, -50%);
+  /* shifted so the box and the visible text, not the empty reader space, sit centered */
+  transform: translate(calc(-50% + var(--shift, 0px)), -50%);
   display: flex;
   align-items: stretch;
   gap: 1.4rem;
@@ -124,6 +125,7 @@ html, body {
   text-decoration-color: color-mix(in srgb, currentColor 35%, transparent);
 }
 .page.idle a:hover, .page.idle a:focus-visible { text-decoration-color: var(--ink); }
+@media (pointer: coarse) { .page.idle a { text-decoration-color: var(--ink); } }
 
 .page .head {
   margin: 0 0 .35rem;
@@ -170,14 +172,38 @@ html, body {
 /* pips */
 .pips {
   position: absolute;
-  left: 0;
-  bottom: -1.1rem;
+  left: -3px;
+  bottom: calc(-1.1rem - 6px);
   display: flex;
-  gap: 6px;
-  height: 4px;
+  height: 16px;
 }
-.pips i { display: block; width: 4px; height: 4px; border: 1px solid var(--ink); border-radius: 50%; }
-.pips i.on { background: var(--ink); }
+/* each pip is a button with a hit area much larger than its dot */
+.pips button {
+  position: relative;
+  width: 10px;
+  height: 16px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+.pips button::after {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 6px;
+  width: 4px;
+  height: 4px;
+  border: 1px solid var(--ink);
+  border-radius: 50%;
+  box-sizing: border-box;
+}
+.pips button.on::after { background: var(--ink); }
+.pips button.end::after { opacity: .35; }
+.pips button:hover::after { transform: scale(1.5); }
+.pips button:focus-visible { outline-offset: 0; }
 
 /* page animation */
 .page.in, .page.idle { animation: print 320ms cubic-bezier(.2, .7, .2, 1) both; }

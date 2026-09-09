@@ -53,12 +53,14 @@ const reader = createReader({
   el: readerEl, email: EMAIL, onToast: toast, onAction: doAction, metaFor,
   on: {
     read: (node, index) => {
+      setTimeout(sparks.measure, 220);
       document.title = node.label + ' · tao';
       if (!pending?.quiet) writeHash(node.id + (index ? '/' + (index + 1) : ''), true);
       pending = null;
     },
-    step: (node, index, dir) => { sound.play(dir < 0 ? 'back' : 'page'); writeHash(node.id + '/' + (index + 1), false); },
+    step: (node, index, dir) => { setTimeout(sparks.measure, 220); sound.play(dir < 0 ? 'back' : 'page'); writeHash(node.id + '/' + (index + 1), false); },
     release: () => {
+      setTimeout(sparks.measure, 220);
       document.title = 'tao';
       writeHash('', false);
       sound.play('release');
@@ -67,8 +69,21 @@ const reader = createReader({
   }
 });
 
+/* center the box and the visible tagline, not the empty reader space */
+function centerMark() {
+  const idle = readerEl.querySelector('.page.idle');
+  if (!idle) return;
+  const r = readerEl.getBoundingClientRect();
+  let right = r.left;
+  for (const el of idle.querySelectorAll('span')) right = Math.max(right, el.getBoundingClientRect().right);
+  mark.style.setProperty('--shift', ((r.right - right) / 2) + 'px');
+}
+centerMark();
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { centerMark(); sparks.measure(); });
+addEventListener('resize', centerMark);
+
 const sparks = createSparks({
-  canvas, field, mark, box, buttons, tree: [...TREE, SETTINGS],
+  canvas, field, mark, box, reader: readerEl, buttons, tree: [...TREE, SETTINGS],
   on: {
     select: s => select(s),
     land: s => {
@@ -144,7 +159,13 @@ function applyHash() {
   } finally { silent = false; }
 }
 addEventListener('hashchange', applyHash);
-if (location.hash) applyHash();
+if (location.hash) {
+  /* arriving on a deep link: put the bare page under it so back closes the section first */
+  const h = location.hash;
+  history.replaceState(null, '', location.pathname + location.search);
+  history.pushState(null, '', h);
+  applyHash();
+}
 
 buildPaper(document.getElementById('paper'), { name: NAME, tagline: TAGLINE, tree: TREE, email: EMAIL });
 

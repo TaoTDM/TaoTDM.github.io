@@ -14,6 +14,7 @@ export const EMAIL = ['tao', 'taotdm.com'].join('@');
 export const SETTINGS = {
   id: 'settings',
   label: 'theme settings',
+  control: true,
   children: [
     { label: 'choose theme', action: 'toggle-theme' },
     { label: 'sound', action: 'toggle-sound' }

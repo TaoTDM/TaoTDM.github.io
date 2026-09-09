@@ -74,10 +74,20 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
     pips.className = 'pips';
     pips.setAttribute('aria-label', 'page ' + (i + 1) + ' of ' + n);
     for (let k = 0; k < n; k++) {
-      const pip = document.createElement('i');
+      const pip = document.createElement('button');
+      pip.type = 'button';
+      pip.setAttribute('aria-label', 'page ' + (k + 1));
       if (k === i) pip.className = 'on';
+      pip.addEventListener('click', e => { e.stopPropagation(); go(k); });
       pips.appendChild(pip);
     }
+    /* one more, faint, that closes the section */
+    const end = document.createElement('button');
+    end.type = 'button';
+    end.className = 'end';
+    end.setAttribute('aria-label', 'close');
+    end.addEventListener('click', e => { e.stopPropagation(); release(); });
+    pips.appendChild(end);
     d.appendChild(pips);
     return d;
   }
