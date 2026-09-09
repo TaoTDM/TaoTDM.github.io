@@ -116,15 +116,25 @@ export function createReader({ el, email, onToast, on = {} }) {
     show(idlePage(), () => on.release && on.release(was));
   }
 
-  /* tap and swipe */
-  let sx = null, swiped = false;
-  el.addEventListener('pointerdown', e => { sx = e.clientX; swiped = false; });
+  /* tap swipe and hold */
+  let sx = null, swiped = false, holdTimer = null, heldOut = false;
+  el.addEventListener('pointerdown', e => {
+    sx = e.clientX; swiped = false; heldOut = false;
+    clearTimeout(holdTimer);
+    if (node) holdTimer = setTimeout(() => { heldOut = true; release(); }, 550);
+  });
+  const endHold = () => clearTimeout(holdTimer);
   el.addEventListener('pointerup', e => {
+    endHold();
     if (sx === null) return;
     const dx = e.clientX - sx; sx = null;
-    if (Math.abs(dx) > 40) { swiped = true; dx < 0 ? next() : prev(); }
+    if (!heldOut && Math.abs(dx) > 40) { swiped = true; dx < 0 ? next() : prev(); }
   });
+  el.addEventListener('pointercancel', endHold);
+  el.addEventListener('pointerleave', endHold);
+  el.addEventListener('contextmenu', e => { if (node) e.preventDefault(); });
   el.addEventListener('click', e => {
+    if (heldOut) { heldOut = false; return; }
     if (swiped) { swiped = false; return; }
     if (node && !e.target.closest('a, button')) next();
   });

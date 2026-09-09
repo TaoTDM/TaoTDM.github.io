@@ -87,8 +87,20 @@ function toggleSound() {
   sparks.setOff(soundSpark, !sound.toggle());
 }
 
-/* box tap */
+/* box tap and hold */
+let boxHold = null, boxHeld = false;
+box.addEventListener('pointerdown', () => {
+  boxHeld = false;
+  clearTimeout(boxHold);
+  if (reader.node) boxHold = setTimeout(() => { boxHeld = true; reader.release(); }, 550);
+});
+const endBoxHold = () => clearTimeout(boxHold);
+box.addEventListener('pointerup', endBoxHold);
+box.addEventListener('pointercancel', endBoxHold);
+box.addEventListener('pointerleave', endBoxHold);
+box.addEventListener('contextmenu', e => e.preventDefault());
 box.addEventListener('click', () => {
+  if (boxHeld) { boxHeld = false; return; }
   if (reader.node) reader.next(); else sparks.gather(!sparks.gathered);
 });
 

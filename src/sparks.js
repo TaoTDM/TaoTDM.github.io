@@ -14,7 +14,10 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   const WALL = 1.6;                   /* wall force */
   const SEP = 90;                     /* separation distance */
   const DAMP = .5;                    /* damping */
-  const ORBIT_K = 6, ORBIT_C = 3.6;   /* orbit spring damper */
+  const RADIAL = 1.4;                 /* pull toward orbit radius */
+  const ANGULAR = 40;                 /* drift toward orbit slot */
+  const FOLLOW = 2.2;                 /* how fast velocity follows the flow */
+  const LABEL_H = 26;                 /* label box height */
 
   const family = getComputedStyle(document.documentElement).getPropertyValue('--serif');
   const LABEL = '400 18.4px ' + family;
@@ -52,7 +55,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
       omega: .06 + Math.random() * .05, rphase: Math.random() * 7,
       f1: .09 + Math.random() * .12, f2: .17 + Math.random() * .16,
       p1: Math.random() * 7, p2: Math.random() * 7, p3: Math.random() * 7, p4: Math.random() * 7,
-      trail: []
+      trail: [], gatherAt: 0
     };
     const b = document.createElement('button');
     b.type = 'button';
@@ -108,6 +111,38 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
   seed();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); bounds(); clipCache.clear(); });
 
+  /* label box */
+  function rectFor(s) {
+    const shown = s.alpha > .15;
+    const w = shown ? 14 + s.labelW : PX, h = shown ? LABEL_H : PX;
+    return { x1: s.x - PX, x2: s.x + w, y1: s.y - h / 2, y2: s.y + h / 2 };
+  }
+  /* push apart overlapping boxes */
+  function repel(s, add, scale) {
+    const a = rectFor(s);
+    const pad = 10;
+    const push = (b, k) => {
+      const gx = Math.max(a.x1 - b.x2, b.x1 - a.x2) - pad;
+      const gy = Math.max(a.y1 - b.y2, b.y1 - a.y2) - pad;
+      if (gx >= 0 || gy >= 0) {
+        /* near but not touching: a gentle point repulsion */
+        const cx = (a.x1 + a.x2 - b.x1 - b.x2) / 2, cy = (a.y1 + a.y2 - b.y1 - b.y2) / 2;
+        const d = Math.hypot(cx, cy) || 1;
+        if (d < SEP) { const f = (SEP - d) / SEP * 18 * k; add(cx / d * f, cy / d * f); }
+        return;
+      }
+      /* overlapping: move out along the shorter way, mostly up or down */
+      const cy = (a.y1 + a.y2) / 2 - (b.y1 + b.y2) / 2;
+      const cx = (a.x1 + a.x2) / 2 - (b.x1 + b.x2) / 2;
+      const f = 90 * k;
+      if (-gy < -gx * .6) add(0, Math.sign(cy || 1) * f);
+      else add(Math.sign(cx || 1) * f * .6, Math.sign(cy || 1) * f * .5);
+    };
+    for (const o of sparks) if (o !== s && !o.absorbed && !o.flying) push(rectFor(o), scale);
+    const m = G.mark;
+    push({ x1: m.x - m.w / 2, x2: m.x + m.w / 2, y1: m.y - m.h / 2, y2: m.y + m.h / 2 }, scale * 1.5);
+  }
+
   /* motion loop */
   let mode = 'drift';
   let last = performance.now();
@@ -128,13 +163,27 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
 
       let ax = 0, ay = 0;
       if (mode === 'gather') {
-        /* orbit spring */
-        const a = s.orbit + t * s.omega;
+        /* orbit flow field */
+        const ex = (s.x - m.x) / wide, ey = s.y - m.y;
+        const dist = Math.hypot(ex, ey) || 1;
+        const ux = ex / dist, uy = ey / dist;
         const r = R * (1 + .07 * Math.sin(t * .3 + s.rphase));
-        const tx = Math.min(s.maxX, m.x + Math.cos(a) * r * wide);
-        const ty = m.y + Math.sin(a) * r;
-        ax += (tx - s.x) * ORBIT_K - s.vx * ORBIT_C;
-        ay += (ty - s.y) * ORBIT_K - s.vy * ORBIT_C;
+        const slot = s.orbit + t * s.omega;
+        let err = slot - Math.atan2(ey, ex);
+        err = Math.atan2(Math.sin(err), Math.cos(err));
+        /* desired velocity: inward or outward to the ring, plus along the ring */
+        const vr = Math.max(-90, Math.min(90, (r - dist) * RADIAL));
+        const vt = s.omega * r + Math.max(-60, Math.min(60, err * ANGULAR));
+        const dvx = (ux * vr - uy * vt) * wide, dvy = uy * vr + ux * vt;
+        const ramp = Math.min(1, (t - s.gatherAt) / 1.4);
+        const gain = FOLLOW * (.25 + .75 * ramp * ramp);
+        ax += (dvx - s.vx) * gain;
+        ay += (dvy - s.vy) * gain;
+        /* a little wander stays */
+        ax += WANDER * .35 * Math.sin(t * s.f1 + s.p1);
+        ay += WANDER * .35 * Math.sin(t * s.f1 * 1.3 + s.p3);
+        if (s.x > s.maxX) ax -= (s.x - s.maxX) * WALL;
+        repel(s, (x, y) => { ax += x; ay += y; }, 1);
       } else {
         if (reduce) continue;
         /* sine wander */
@@ -149,17 +198,12 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
         const hx = (s.x - m.x) / (m.w / 2 + 40), hy = (s.y - m.y) / (m.h / 2 + 40);
         const hd = Math.hypot(hx, hy);
         if (hd < 1) { const f = (1 - hd) * 60; ax += (hx / (hd || 1)) * f; ay += (hy / (hd || 1)) * f; }
-        /* separation */
-        for (const o of sparks) {
-          if (o === s || o.absorbed) continue;
-          const dx = s.x - o.x, dy = s.y - o.y, d = Math.hypot(dx, dy);
-          if (d < SEP && d > 0) { const f = (SEP - d) / SEP * 18; ax += dx / d * f; ay += dy / d * f; }
-        }
+        repel(s, (x, y) => { ax += x; ay += y; }, 1);
         ax -= s.vx * DAMP; ay -= s.vy * DAMP;
       }
       s.vx += ax * dt; s.vy += ay * dt;
       const sp = Math.hypot(s.vx, s.vy);
-      const cap = mode === 'gather' ? MAXV * 6 : MAXV;
+      const cap = mode === 'gather' ? MAXV * 5 : MAXV;
       if (sp > cap) { s.vx *= cap / sp; s.vy *= cap / sp; }
       s.x += s.vx * dt; s.y += s.vy * dt;
       /* hard clamp */
@@ -291,6 +335,7 @@ export function createSparks({ canvas, field, mark, box, buttons, tree, on = {} 
     withAngle.forEach((p, i) => {
       /* cancel elapsed time */
       p.s.orbit = offset + i * gap - t * p.s.omega;
+      p.s.gatherAt = t;
     });
   }
 
