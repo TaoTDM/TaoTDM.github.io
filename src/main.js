@@ -34,7 +34,8 @@ function metaFor(item) {
   return null;
 }
 function doAction(item) {
-  if (item.action === 'toggle-theme') { theme.toggle(); sparks.setTheme(theme.current); sound.play('page'); }
+  if (item.action === 'toggle-theme') { theme.toggle(); sparks.setTheme(theme.current);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(sparks.measure); sound.play('page'); }
   if (item.action === 'toggle-sound') sound.toggle();
 }
 
@@ -68,19 +69,6 @@ const reader = createReader({
     }
   }
 });
-
-/* center the box and the visible tagline, not the empty reader space */
-function centerMark() {
-  const idle = readerEl.querySelector('.page.idle');
-  if (!idle) return;
-  const r = readerEl.getBoundingClientRect();
-  let right = r.left;
-  for (const el of idle.querySelectorAll('span')) right = Math.max(right, el.getBoundingClientRect().right);
-  mark.style.setProperty('--shift', ((r.right - right) / 2) + 'px');
-}
-centerMark();
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { centerMark(); sparks.measure(); });
-addEventListener('resize', centerMark);
 
 const sparks = createSparks({
   canvas, field, mark, box, reader: readerEl, buttons, tree: [...TREE, SETTINGS],
