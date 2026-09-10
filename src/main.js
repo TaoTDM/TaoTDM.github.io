@@ -122,19 +122,23 @@ box.addEventListener('click', () => {
 });
 
 /* trackpad and mouse wheel, sideways */
-let wheelSum = 0, wheelCool = 0;
+let wheelLast = 0, wheelMag = 0, wheelSign = 0;
 addEventListener('wheel', e => {
   if (!reader.node || pending) return;
   /* a long line that scrolls inside its box keeps the wheel */
   const text = e.target.closest && e.target.closest('.text');
   if (text && text.scrollHeight > text.clientHeight + 1) return;
+  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
+  const mag = Math.abs(d), sign = Math.sign(d);
   const now = performance.now();
-  if (now < wheelCool) return;
-  wheelSum += Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  if (Math.abs(wheelSum) > 60) {
-    wheelSum > 0 ? reader.next() : reader.prev();
-    wheelSum = 0; wheelCool = now + 500;
-  }
+  /* the tail of an inertia scroll is a trickle of tiny deltas. it never pages, and it marks the gesture as over */
+  if (mag < 3) { wheelMag = mag; wheelLast = now; return; }
+  /* a new gesture: a pause, a direction change, a jump in delta, or anything after the tail.
+     inertia only decays, so none of these happen inside one gesture */
+  const fresh = now - wheelLast > 80 || sign !== wheelSign || mag > wheelMag * 1.3 + 2 || wheelMag < 3;
+  wheelLast = now; wheelMag = mag; wheelSign = sign;
+  if (!fresh) return;
+  d > 0 ? reader.next() : reader.prev();
 }, { passive: true });
 
 addEventListener('keydown', e => {

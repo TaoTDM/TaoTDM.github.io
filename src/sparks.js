@@ -103,7 +103,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     LIGHT.w = G.box.w;
     LIGHT.reach = G.h - LIGHT.y + 40;
     LIGHT.shift = LIGHT.reach * (.28 * Math.sin(t * .09) + .08 * Math.sin(t * .23 + 1.7));
-    LIGHT.power = .6 + .4 * Math.sin(t * .13 + .6) * Math.sin(t * .05 + 2);
+    LIGHT.power = .7 + .3 * Math.sin(t * .13 + .6) * Math.sin(t * .05 + 2);
   }
   /* center and half width of the light at a depth below the sill */
   function lightAt(dy) {
@@ -113,11 +113,12 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
   /* how much window light reaches a point, 0 to 1 */
   function litAt(x, y) {
     const dy = y - LIGHT.y;
-    if (dy < 0) return 0;
+    if (dy < 0) return { glow: 0, inside: 0 };
     const { cx, hw, k } = lightAt(dy);
     const across = 1 - Math.min(1, Math.abs(x - cx) / (hw * 1.15));
     const along = 1 - k * .8;
-    return LIGHT.power * across * across * along;
+    /* inside: 1 well within the shape, 0 at its edge. glow: how bright the light is there */
+    return { glow: LIGHT.power * across * across * along, inside: Math.max(0, Math.min(1, (across - .12) / .3)) };
   }
 
   /* label right bound */
@@ -223,18 +224,22 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     const w = G.w, h = G.h, m = G.mark, R = G.R;
     /* a circle, or a tall ellipse on a narrow screen */
     const wide = 1, tall = w > h ? 1 : 1.25;
-    const fade = 1 - Math.exp(-dt * 12);
+    const fade = 1 - Math.exp(-dt * 12), fadeSlow = 1 - Math.exp(-dt * 3);
     const left = w * .12, top = h * .12, bottom = h * .88;
 
     if (night) updateLight();
     whisper(now);
     for (const s of sparks) {
-      /* light on this spark, 0 to 1 */
-      s.lit = night && !s.absorbed ? Math.min(1, litAt(s.x, s.y) * 1.6) : 0;
-      /* in the light the text reads in full, with a short ramp at the edge */
-      const read = Math.max(0, Math.min(1, (s.lit - .1) / .2));
+      /* light on this spark. inside the shape the text reads in full */
+      let read = 0;
+      if (night && !s.absorbed) {
+        const L = litAt(s.x, s.y);
+        s.lit = Math.min(1, L.glow * 1.6);
+        read = L.inside;
+      } else s.lit = 0;
       const wantLabel = (s.hover || s.focused || s.whisper || mode === 'gather' || s.peek > 0) ? 1 : read;
-      s.alpha += (wantLabel - s.alpha) * fade;
+      /* labels appear quickly and fade slowly */
+      s.alpha += (wantLabel - s.alpha) * (wantLabel > s.alpha ? fade : fadeSlow);
       s.vis += ((s.absorbed ? 0 : 1) - s.vis) * fade;
       if (s.absorbed || s.flying || s.focused || s.peek > 0 || s.dragging) continue;
 
