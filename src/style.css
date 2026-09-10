@@ -83,6 +83,21 @@ html, body {
 .mark-box span { display: block; }
 /* box flash */
 .mark-box.hot { background: var(--ink); color: var(--paper); }
+/* pulse ring */
+.mark-box::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border: 1px solid var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+.mark-box.pulse::after { animation: pulse 2.4s cubic-bezier(.3, .6, .4, 1) infinite; }
+@keyframes pulse {
+  0% { inset: -2px; opacity: 0; }
+  18% { opacity: .55; }
+  100% { inset: -16px; opacity: 0; }
+}
 
 /* night window */
 :root[data-theme="night"] .mark-box {
@@ -116,6 +131,7 @@ html, body {
   min-height: 0;
 }
 .page.idle span { display: block; white-space: nowrap; }
+.page.say span { white-space: normal; font-size: 1.15rem; }
 .page.idle a {
   color: inherit;
   text-decoration: underline;
@@ -174,6 +190,7 @@ html, body {
   left: -3px;
   bottom: calc(-1.1rem - 6px);
   display: flex;
+  align-items: center;
   height: 16px;
 }
 /* each pip is a button with a hit area much larger than its dot */
@@ -200,6 +217,22 @@ html, body {
   box-sizing: border-box;
 }
 .pips[hidden] { display: none; }
+/* arrow hint. rides at the end of the pip row, first time a section opens, until a page turns. pointers only */
+.keys {
+  display: flex;
+  align-self: center;
+  gap: 4px;
+  margin-left: 6px;
+  color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+}
+.keys svg { display: block; }
+@media (pointer: fine) {
+  .keys.show { animation: keysin 900ms ease-out both, blink 2.4s ease-in-out 900ms infinite; }
+}
+@keyframes keysin { from { opacity: 0; } to { opacity: .6; } }
+@keyframes blink { 0%, 100% { opacity: .6; } 50% { opacity: .2; } }
 .pips button.on::after { background: var(--ink); }
 .pips button.end::after { opacity: .35; }
 .pips button:hover::after { transform: scale(1.5); }

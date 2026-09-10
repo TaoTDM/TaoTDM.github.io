@@ -1,6 +1,6 @@
 /* reader */
 
-export function createReader({ el, email, onToast, onAction, metaFor, on = {} }) {
+export function createReader({ el, email, onToast, onAction, metaFor, keys, on = {} }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const IDLE_HTML = el.innerHTML;
 
@@ -11,8 +11,10 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
   pips.className = 'pips';
   pips.hidden = true;
   el.appendChild(pips);
+  if (keys) pips.appendChild(keys);
   function renderPips(n, i) {
-    if (pips.childElementCount !== n + 1) {
+    if (pips.childElementCount !== n + 1 + (keys ? 1 : 0)) {
+      if (keys) keys.remove();
       pips.innerHTML = '';
       for (let k = 0; k < n; k++) {
         const pip = document.createElement('button');
@@ -28,8 +30,9 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
       end.setAttribute('aria-label', 'close');
       end.addEventListener('click', e => { e.stopPropagation(); release(); });
       pips.appendChild(end);
+      if (keys) pips.appendChild(keys);
     }
-    [...pips.children].forEach((b, k) => b.classList.toggle('on', k === i));
+    [...pips.querySelectorAll('button')].forEach((b, k) => b.classList.toggle('on', k === i));
     pips.setAttribute('aria-label', 'page ' + (i + 1) + ' of ' + n);
     pips.hidden = false;
   }
@@ -154,6 +157,18 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
     show(idlePage(), () => on.release && on.release(was));
   }
 
+  /* one line in place of the tagline, for a moment */
+  function say(text, ms = 3200) {
+    if (node) return;
+    const d = document.createElement('div');
+    d.className = 'page idle say';
+    const span = document.createElement('span');
+    span.textContent = text;
+    d.appendChild(span);
+    show(d);
+    setTimeout(() => { if (!node) show(idlePage()); }, ms);
+  }
+
   /* tap swipe and hold */
   let sx = null, swiped = false, holdTimer = null, heldOut = false;
   const selecting = () => (window.getSelection && String(window.getSelection())).length > 0;
@@ -182,7 +197,7 @@ export function createReader({ el, email, onToast, onAction, metaFor, on = {} })
   });
 
   return {
-    read, next, prev, go, release,
+    read, next, prev, go, release, say,
     get node() { return node; },
     get index() { return index; },
     get length() { return pages.length; }

@@ -1,6 +1,6 @@
 /* wiring */
 
-import { TREE, SETTINGS, EMAIL, NAME, TAGLINE } from './content.js';
+import { TREE, SETTINGS, EMAIL, NAME, TAGLINE, THANKS } from './content.js';
 import { createSparks } from './sparks.js';
 import { createReader } from './reader.js';
 import { createSound } from './sound.js';
@@ -53,7 +53,7 @@ let quietUntil = 0;    /* short guard after a landing */
 const settled = () => performance.now() > quietUntil;
 
 const reader = createReader({
-  el: readerEl, email: EMAIL, onToast: toast, onAction: doAction, metaFor,
+  el: readerEl, email: EMAIL, onToast: toast, onAction: doAction, metaFor, keys: document.getElementById('keys'),
   on: {
     read: (node, index) => {
       setTimeout(sparks.measure, 220);
@@ -61,13 +61,15 @@ const reader = createReader({
       if (!pending?.quiet) writeHash(node.id + (index ? '/' + (index + 1) : ''), true);
       pending = null;
     },
-    step: (node, index, dir) => { setTimeout(sparks.measure, 220); sound.play(dir < 0 ? 'back' : 'page'); writeHash(node.id + '/' + (index + 1), false); },
+    step: (node, index, dir) => { pulseOff(); setTimeout(sparks.measure, 220); sound.play(dir < 0 ? 'back' : 'page'); writeHash(node.id + '/' + (index + 1), false); },
     release: () => {
+      pulseOff();
       setTimeout(sparks.measure, 220);
       document.title = 'tao';
       writeHash('', false);
       sound.play('release');
       if (held) { sparks.emit(held); held = null; }
+      if (!thanked && readSet.size >= TREE.length) { thanked = true; setTimeout(() => reader.say(THANKS), 700); }
     }
   }
 });
@@ -86,6 +88,9 @@ const sparks = createSparks({
       held = s;
       if (prev && prev !== s) sparks.emit(prev);
       reader.read(s.node, pending ? pending.page : 0);
+      /* the first time, show that the box turns the page and the arrows do too */
+      if (!pulsed) { pulsed = true; setTimeout(() => { if (held) { pulseOn(); keys.classList.add('show'); } }, 900); }
+      if (!s.node.control) readSet.add(s.node.id);
     },
     empty: () => { if (held && !pending && settled()) reader.release(); },
     swipe: dir => { if (reader.node) dir > 0 ? reader.next() : reader.prev(); },
@@ -116,30 +121,22 @@ box.addEventListener('pointercancel', endBoxHold);
 box.addEventListener('pointerleave', endBoxHold);
 box.addEventListener('contextmenu', e => e.preventDefault());
 box.addEventListener('click', () => {
+  pulseOff();
   if (boxHeld) { boxHeld = false; return; }
   if (pending || !settled()) return;
   if (reader.node) reader.next(); else sparks.gather(!sparks.gathered);
 });
 
-/* trackpad and mouse wheel, sideways */
-let wheelLast = 0, wheelMag = 0, wheelSign = 0;
-addEventListener('wheel', e => {
-  if (!reader.node || pending) return;
-  /* a long line that scrolls inside its box keeps the wheel */
-  const text = e.target.closest && e.target.closest('.text');
-  if (text && text.scrollHeight > text.clientHeight + 1) return;
-  const d = Math.abs(e.deltaX) > Math.abs(e.deltaY) ? e.deltaX : e.deltaY;
-  const mag = Math.abs(d), sign = Math.sign(d);
-  const now = performance.now();
-  /* the tail of an inertia scroll is a trickle of tiny deltas. it never pages, and it marks the gesture as over */
-  if (mag < 3) { wheelMag = mag; wheelLast = now; return; }
-  /* a new gesture: a pause, a direction change, a jump in delta, or anything after the tail.
-     inertia only decays, so none of these happen inside one gesture */
-  const fresh = now - wheelLast > 80 || sign !== wheelSign || mag > wheelMag * 1.3 + 2 || wheelMag < 3;
-  wheelLast = now; wheelMag = mag; wheelSign = sign;
-  if (!fresh) return;
-  d > 0 ? reader.next() : reader.prev();
-}, { passive: true });
+/* box pulse: a ring that keeps swelling out of the box until the box is clicked or the section closes */
+let pulsed = false;
+const pulseOn = () => box.classList.add('pulse');
+const keys = document.getElementById('keys');
+const pulseOff = () => { box.classList.remove('pulse'); keys.classList.remove('show'); };
+
+/* the box remembers. once every section has been read, it says so, once */
+const readSet = new Set();
+let thanked = false;
+setTimeout(pulseOn, 2600);
 
 addEventListener('keydown', e => {
   if (pending) return;

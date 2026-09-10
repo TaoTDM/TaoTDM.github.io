@@ -44,27 +44,39 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
     return ctx;
   }
 
+  /* every play builds its own nodes, so overlapping sounds never share or cut each other.
+     each step has a tiny attack and release so it starts and ends without a click */
   function synth(name) {
     const p = PATCH[name];
     if (!p) return;
     const ac = audio();
-    const gain = ac.createGain();
-    gain.gain.value = VOLUME;
-    gain.connect(ac.destination);
-    let at = ac.currentTime;
+    const out = ac.createGain();
+    out.gain.value = 1;
+    out.connect(ac.destination);
+    let at = ac.currentTime + .005;
+    const edge = .004;
     for (const [hz, len] of p.steps) {
       const osc = ac.createOscillator();
+      const g = ac.createGain();
       osc.type = p.wave;
       osc.frequency.value = hz;
-      osc.connect(gain);
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(VOLUME, at + edge);
+      g.gain.setValueAtTime(VOLUME, at + len - edge);
+      g.gain.linearRampToValueAtTime(0, at + len);
+      osc.connect(g);
+      g.connect(out);
       osc.start(at);
-      osc.stop(at + len);
+      osc.stop(at + len + .01);
+      osc.onended = () => { osc.disconnect(); g.disconnect(); };
       at += len;
     }
-    /* fade tail */
-    gain.gain.setValueAtTime(VOLUME, at - .01);
-    gain.gain.linearRampToValueAtTime(0, at + .02);
+    /* the output node lets go once the last step is done */
+    setTimeout(() => out.disconnect(), (at - ac.currentTime) * 1000 + 100);
   }
+
+  /* file sounds are kept in a set until they end, so nothing is collected mid play */
+  const playing = new Set();
 
   function play(name) {
     if (!enabled) return;
@@ -73,7 +85,9 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
     if (file) {
       const a = file.cloneNode();
       a.volume = Math.min(1, VOLUME * 4);
-      a.play().catch(() => {});
+      playing.add(a);
+      a.addEventListener('ended', () => playing.delete(a), { once: true });
+      a.play().catch(() => playing.delete(a));
       return;
     }
     try { synth(name); } catch {}

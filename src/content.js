@@ -2,6 +2,9 @@
 
 export const NAME = 'Shi-Tao Chang';
 export const TAGLINE = ['Geo AI @ UT', 'GISense Lab'];
+/* shown once, after every section has been read in one visit */
+export const THANKS = 'thx for reading!';
+
 export const LINKS = {
   ut: 'https://www.utexas.edu/',
   lab: 'https://sites.utexas.edu/gisense/'
