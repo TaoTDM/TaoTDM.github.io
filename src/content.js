@@ -29,7 +29,8 @@ export const TREE = [
     children: [
       { label: 'hey! glad u found this; welcome to my page.' },
       { label: 'i\'m currently doing geo ai research at GISense Lab, UT Austin.', href: LINKS.lab },
-      { label: 'i\'m also interested in social deduction games, neuro ai, & human-centered spatial datascience.' }
+      { label: 'i\'m also interested in social deduction games, neuro ai, & human-centered spatial datascience.' },
+      { label: 'feel free to explore a bit more!' }
     ]
   },
   {

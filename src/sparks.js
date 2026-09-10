@@ -183,18 +183,18 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     push({ x1: m.x - m.w / 2, x2: m.x + m.w / 2, y1: m.y - m.h / 2, y2: m.y + m.h / 2 }, scale * 1.5);
   }
 
-  /* first visit. one label blooms once, a few seconds in */
+  /* on load, about flickers in like a tube warming up, holds, then goes out */
   function remember(key) {
     try { if (localStorage.getItem(key)) return true; localStorage.setItem(key, '1'); return false; } catch { return true; }
   }
-  if (!remember('tao.seen')) {
+  const about = sparks.find(s => s.node.id === 'about');
+  if (about) {
+    const flicks = [0, 140, 260, 460, 560, 760, 880, 960, 1200];
     setTimeout(() => {
-      const free = sparks.filter(s => !s.absorbed && !s.flying && !s.node.control);
-      if (!free.length) return;
-      const s = free[Math.floor(Math.random() * free.length)];
-      s.whisper = true;
-      setTimeout(() => { s.whisper = false; }, 2200);
-    }, 4500);
+      flicks.forEach((ms, i) => setTimeout(() => { about.whisper = i % 2 === 0; }, ms));
+      setTimeout(() => { about.whisper = true; }, 1300);
+      setTimeout(() => { about.whisper = false; }, 4200);
+    }, 1200);
   }
 
   /* idle whisper. after a quiet minute one spark shows its label for a moment */
@@ -224,7 +224,9 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     const w = G.w, h = G.h, m = G.mark, R = G.R;
     /* a circle, or a tall ellipse on a narrow screen */
     const wide = 1, tall = w > h ? 1 : 1.25;
-    const fade = 1 - Math.exp(-dt * 12), fadeSlow = 1 - Math.exp(-dt * 3);
+    const fade = 1 - Math.exp(-dt * 12);
+    /* label fades: in over about a fifth of a second, out over about half a second */
+    const fadeIn = 1 - Math.exp(-dt * 6), fadeOut = 1 - Math.exp(-dt * 2.2);
     const left = w * .12, top = h * .12, bottom = h * .88;
 
     if (night) updateLight();
@@ -239,7 +241,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       } else s.lit = 0;
       const wantLabel = (s.hover || s.focused || s.whisper || mode === 'gather' || s.peek > 0) ? 1 : read;
       /* labels appear quickly and fade slowly */
-      s.alpha += (wantLabel - s.alpha) * (wantLabel > s.alpha ? fade : fadeSlow);
+      s.alpha += (wantLabel - s.alpha) * (wantLabel > s.alpha ? fadeIn : fadeOut);
       s.vis += ((s.absorbed ? 0 : 1) - s.vis) * fade;
       if (s.absorbed || s.flying || s.focused || s.peek > 0 || s.dragging) continue;
 
