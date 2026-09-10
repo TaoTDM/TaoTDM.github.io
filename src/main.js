@@ -127,7 +127,7 @@ box.addEventListener('click', () => {
   if (reader.node) reader.next(); else sparks.gather(!sparks.gathered);
 });
 
-/* box pulse: a ring that keeps swelling out of the box until the box is clicked or the section closes */
+/* box pulse: after the first spark lands, a ring swells out of the box until it is clicked or a page turns */
 let pulsed = false;
 const pulseOn = () => box.classList.add('pulse');
 const keys = document.getElementById('keys');
@@ -136,7 +136,6 @@ const pulseOff = () => { box.classList.remove('pulse'); keys.classList.remove('s
 /* the box remembers. once every section has been read, it says so, once */
 const readSet = new Set();
 let thanked = false;
-setTimeout(pulseOn, 2600);
 
 addEventListener('keydown', e => {
   if (pending) return;
