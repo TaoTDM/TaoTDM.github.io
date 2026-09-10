@@ -2,7 +2,8 @@
 
 export function createReader({ el, email, onToast, onAction, metaFor, keys, on = {} }) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const IDLE_HTML = el.innerHTML;
+  /* the tagline markup, kept to restore later */
+  const IDLE_HTML = el.querySelector('.page.idle').outerHTML;
 
   let node = null, pages = [], index = 0, swapping = false;
 

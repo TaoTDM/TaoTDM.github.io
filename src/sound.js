@@ -38,11 +38,17 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
     try { localStorage.setItem(storageKey, enabled ? 'on' : 'off'); } catch {}
   }
 
+  /* the context is made at once and woken on the first gesture, so the first sound is not late */
   function audio() {
-    if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
-    if (ctx.state === 'suspended') ctx.resume();
+    if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch { return null; } }
+    if (ctx.state === 'suspended') ctx.resume().catch(() => {});
     return ctx;
   }
+  audio();
+  const wake = () => { audio(); };
+  addEventListener('pointerdown', wake, { passive: true });
+  addEventListener('keydown', wake);
+  addEventListener('touchstart', wake, { passive: true });
 
   /* every play builds its own nodes, so overlapping sounds never share or cut each other.
      each step has a tiny attack and release so it starts and ends without a click */
@@ -50,6 +56,12 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
     const p = PATCH[name];
     if (!p) return;
     const ac = audio();
+    if (!ac) return;
+    /* if the context is still waking, schedule once it runs */
+    if (ac.state !== 'running') { ac.resume().then(() => schedule(ac, p)).catch(() => {}); return; }
+    schedule(ac, p);
+  }
+  function schedule(ac, p) {
     const out = ac.createGain();
     out.gain.value = 1;
     out.connect(ac.destination);
