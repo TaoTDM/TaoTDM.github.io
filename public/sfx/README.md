@@ -34,7 +34,7 @@ file is a short cut from the recording, at one loudness.
 | `land.wav`    | putting a pencil on paper to write               | ani_music  | 632474       |
 | `gather.wav`  | pencil writing on paper (4 strokes)              | ani_music  | 632477       |
 | `scatter.wav` | pencil writing on paper (3 strokes, take a)      | ani_music  | 632471       |
-| `page.wav`    | quiet page turn - 2                              | SpaceJoe   | 484962       |
-| `back.wav`    | quiet page turn - 3                              | SpaceJoe   | 484963       |
+| `page.wav`    | quiet page turn - 7, the flick only              | SpaceJoe   | 484967       |
+| `back.wav`    | quiet page turn - 4, the flick only              | SpaceJoe   | 484964       |
 
 `hover` has no file. it uses the built-in sound, and it is off by default.
