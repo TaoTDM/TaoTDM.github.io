@@ -6,3 +6,4 @@ MAINTAINING.md
 node_modules/
 dist/
 docs/
+.claude/

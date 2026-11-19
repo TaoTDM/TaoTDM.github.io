@@ -1,6 +1,6 @@
 /* canvas sparks */
 
-export function createSparks({ canvas, field, mark, box, reader, buttons, tree, on = {} }) {
+export function createSparks({ canvas, field, mark, box, reader, buttons, tree, pen = null, on = {} }) {
   const ctx = canvas.getContext('2d');
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const coarse = matchMedia('(pointer: coarse)').matches;
@@ -19,13 +19,17 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
   const ANGULAR = 40;                 /* drift toward orbit slot */
   const FOLLOW = 2.2;                 /* how fast velocity follows the flow */
   const LABEL_H = 26;                 /* label box height */
+  const EDGE = 8;                     /* least distance from a side edge */
+  const BREATH = .07;                 /* how much the ring radius changes */
+  const TURN = .085;                  /* ring speed when all sparks share one */
 
   const family = getComputedStyle(document.documentElement).getPropertyValue('--serif');
-  const LABEL = '400 18.4px ' + family;
-  const PEEK = '400 14px ' + family;
+  /* a pen, if there is one, gives its own fonts and draws the words and the dots */
+  const LABEL = pen ? pen.label : '400 18.4px ' + family;
+  const PEEK = pen ? pen.peek : '400 14px ' + family;
 
   /* geometry cache */
-  const G = { w: 0, h: 0, dpr: 1, mark: null, seed: null, box: null, R: 0 };
+  const G = { w: 0, h: 0, dpr: 1, mark: null, seed: null, box: null, ink: [], cx: 0, cy: 0, rx: 0, ry: 0, breath: BREATH, even: false };
   function rectOf(el, pad) {
     const r = el.getBoundingClientRect(), f = field.getBoundingClientRect();
     return { x: r.left - f.left + r.width / 2, y: r.top - f.top + r.height / 2, w: r.width + pad, h: r.height + pad };
@@ -45,6 +49,58 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     }
     return { x: (l + r) / 2 - f.left, y: (tp + bt) / 2 - f.top, w: r - l + pad, h: bt - tp + pad };
   }
+  /* the ink of the mark: the box, and the text that shows. a line of text is a block as wide
+     as the reader, so the text nodes give the true width */
+  function ink() {
+    const f = field.getBoundingClientRect();
+    const b = box.getBoundingClientRect(), rd = reader.getBoundingClientRect();
+    const out = [{ x1: b.left - f.left, y1: b.top - f.top, x2: b.right - f.left, y2: b.bottom - f.top }];
+    let l = Infinity, tp = Infinity, r = -Infinity, bt = -Infinity;
+    const grow = c => {
+      if (!c.width || !c.height) return;
+      l = Math.min(l, c.left); r = Math.max(r, c.right);
+      tp = Math.min(tp, Math.max(c.top, rd.top)); bt = Math.max(bt, Math.min(c.bottom, rd.bottom));
+    };
+    const range = document.createRange();
+    for (const page of reader.querySelectorAll('.page')) {
+      const walk = document.createTreeWalker(page, NodeFilter.SHOW_TEXT);
+      while (walk.nextNode()) {
+        range.selectNodeContents(walk.currentNode);
+        for (const c of range.getClientRects()) grow(c);
+      }
+    }
+    for (const el of reader.querySelectorAll('.pips')) grow(el.getBoundingClientRect());
+    if (r > l && bt > tp) out.push({ x1: l - f.left, y1: tp - f.top, x2: r - f.left, y2: bt - f.top });
+    return out;
+  }
+  /* ring shape. the center is the middle of the ink, not the middle of the screen: the reader
+     keeps empty room at its right. a circle on a wide screen, a tall ellipse on a narrow one */
+  function ring() {
+    /* the ring keeps its shape while a section is open. it follows the tagline only */
+    if (G.rx && reader.classList.contains('reading')) return;
+    G.ink = ink();
+    const x1 = Math.min(...G.ink.map(r => r.x1)), x2 = Math.max(...G.ink.map(r => r.x2));
+    const y1 = Math.min(...G.ink.map(r => r.y1)), y2 = Math.max(...G.ink.map(r => r.y2));
+    G.cx = (x1 + x2) / 2; G.cy = (y1 + y2) / 2;
+    const half = (x2 - x1) / 2;
+    const near = Math.min(G.cx, G.w - G.cx);
+    const base = Math.min(G.w, G.h) * .38;
+    let breath = BREATH;
+    /* the ring stays on the screen at the near side */
+    let rx = Math.min(base, (near - 18) / (1 + breath));
+    G.even = rx * (1 - breath) < half + 12;
+    if (G.even) {
+      /* no room for that. the ring goes through the middle of the gap between the mark and
+         the screen edge, and its radius changes less. the sparks keep one speed, because
+         one spark cannot go past another there */
+      const gap = Math.max(0, Math.min(80, near - half));
+      rx = half + gap / 2;
+      breath = rx ? Math.max(0, Math.min(BREATH, (gap / 2 - EDGE - 1) / rx)) : 0;
+    }
+    G.rx = rx;
+    G.ry = G.w > G.h ? base : Math.min(G.h * .38, rx * 1.8);
+    G.breath = breath;
+  }
   function measure() {
     G.w = field.clientWidth;
     G.h = field.clientHeight;
@@ -55,18 +111,18 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     G.mark = visibleRect(110);
     G.seed = visibleRect(140);
     G.box = rectOf(box, 0);
-    G.R = Math.min(G.w, G.h) * .38;
+    ring();
   }
   const inside = (p, r) => Math.abs(p.x - r.x) < r.w / 2 && Math.abs(p.y - r.y) < r.h / 2;
 
   /* spark records */
   const sparks = tree.map((node, i) => {
     const s = {
-      node, x: 0, y: 0, vx: 0, vy: 0,
+      node, id: i, x: 0, y: 0, vx: 0, vy: 0,
       absorbed: false, flying: false,
       alpha: 0, vis: 1, peek: 0, hover: false, focused: false,
       peekLine: node.children && node.children[0] ? node.children[0].label : '',
-      labelW: 0, maxX: 0,
+      labelW: 0, maxX: 0, side: 0, flip: 0, loop: 0,
       orbit: (i / tree.length) * Math.PI * 2,
       omega: .06 + Math.random() * .05, rphase: Math.random() * 7,
       f1: .09 + Math.random() * .12, f2: .17 + Math.random() * .16,
@@ -91,6 +147,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
   function setTheme(name) {
     night = name === 'night';
     INK = night ? '#fff' : '#000';
+    if (pen) pen.warm(sparks.map(s => s.node.label), LABEL, INK);
   }
 
   /* window light. the window's shape thrown on the ground: the box's width at the sill,
@@ -132,10 +189,11 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
 
   function seed() {
     for (const s of sparks) {
-      let p;
+      /* a limit on the tries. a field with no size has no free place */
+      let p, tries = 0;
       do {
         p = { x: G.w * .12 + Math.random() * (s.maxX - G.w * .12), y: G.h * (.12 + Math.random() * .76) };
-      } while (inside(p, G.seed));
+      } while (inside(p, G.seed) && ++tries < 200);
       s.x = p.x; s.y = p.y;
       nudge(s);
     }
@@ -151,14 +209,27 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
   seed();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { measure(); bounds(); clipCache.clear(); });
 
+  /* label place. side 0 is right of the dot, side 1 is left of it */
+  function labelX(s, side) { return side ? s.x - 10 - s.labelW : s.x + 10; }
+  /* true if the label has room on that side: on the screen, and clear of the ink */
+  function fits(s, side, spare) {
+    const x1 = labelX(s, side), x2 = x1 + s.labelW;
+    if (x1 < 12 + spare || x2 > G.w - 12 - spare) return false;
+    for (const m of G.ink) {
+      if (x1 < m.x2 + 8 + spare && x2 > m.x1 - 8 - spare && s.y - 13 < m.y2 + 6 && s.y + 13 > m.y1 - 6) return false;
+    }
+    return true;
+  }
+
   /* label box */
   function rectFor(s) {
     const shown = s.alpha > .15;
     const w = shown ? 14 + s.labelW : PX, h = shown ? LABEL_H : PX;
+    if (shown && s.side) return { x1: s.x - w, x2: s.x + PX, y1: s.y - h / 2, y2: s.y + h / 2 };
     return { x1: s.x - PX, x2: s.x + w, y1: s.y - h / 2, y2: s.y + h / 2 };
   }
   /* push apart overlapping boxes */
-  function repel(s, add, scale) {
+  function repel(s, add, scale, solid = true) {
     const a = rectFor(s);
     const pad = 10;
     const push = (b, k) => {
@@ -179,6 +250,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       else add(Math.sign(cx || 1) * f * .6, Math.sign(cy || 1) * f * .5);
     };
     for (const o of sparks) if (o !== s && !o.absorbed && !o.flying) push(rectFor(o), scale);
+    if (!solid) return;
     const m = G.mark;
     push({ x1: m.x - m.w / 2, x2: m.x + m.w / 2, y1: m.y - m.h / 2, y2: m.y + m.h / 2 }, scale * 1.5);
   }
@@ -221,9 +293,9 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
   function step(now) {
     const dt = Math.min(.05, (now - last) / 1000);
     last = now; t += dt;
-    const w = G.w, h = G.h, m = G.mark, R = G.R;
-    /* a circle, or a tall ellipse on a narrow screen */
-    const wide = 1, tall = w > h ? 1 : 1.25;
+    const w = G.w, h = G.h, m = G.mark;
+    /* the ring is a circle of radius R, made narrower by the wide ratio */
+    const R = G.ry || 1, wide = G.rx / R || 1;
     const fade = 1 - Math.exp(-dt * 12);
     /* label fades: in over about a fifth of a second, out over about half a second */
     const fadeIn = 1 - Math.exp(-dt * 6), fadeOut = 1 - Math.exp(-dt * 2.2);
@@ -239,7 +311,19 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
         s.lit = Math.min(1, L.glow * 1.6);
         read = L.inside;
       } else s.lit = 0;
-      const wantLabel = (s.hover || s.focused || s.whisper || mode === 'gather' || s.peek > 0) ? 1 : read;
+      /* in the ring a label goes to the side that has room. the right side is first.
+         if no side has room, the label hides */
+      let room = 1;
+      if (mode === 'gather' && !s.absorbed) {
+        if (fits(s, 0, s.side ? 20 : 0)) s.side = 0;
+        else if (fits(s, 1, 0)) s.side = 1;
+        else room = 0;
+      } else if (s.alpha < .02) s.side = 0;
+      s.flip += (s.side - s.flip) * fadeIn;
+      /* how much of the pen loop around the label is drawn */
+      s.loop += (((s.hover || s.focused) && !s.dragging ? 1 : 0) - s.loop) * (1 - Math.exp(-dt * 9));
+      const asked = s.hover || s.focused || s.whisper || s.peek > 0;
+      const wantLabel = asked ? 1 : mode === 'gather' ? room : read;
       /* labels appear quickly and fade slowly */
       s.alpha += (wantLabel - s.alpha) * (wantLabel > s.alpha ? fadeIn : fadeOut);
       s.vis += ((s.absorbed ? 0 : 1) - s.vis) * fade;
@@ -248,17 +332,18 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       let ax = 0, ay = 0;
       if (mode === 'gather') {
         /* orbit flow field */
-        const ex = (s.x - m.x) / wide, ey = (s.y - m.y) / tall;
+        const ex = (s.x - G.cx) / wide, ey = s.y - G.cy;
         const dist = Math.hypot(ex, ey) || 1;
         const ux = ex / dist, uy = ey / dist;
-        const r = R * (1 + .07 * Math.sin(t * .3 + s.rphase));
-        const slot = s.orbit + t * s.omega;
+        const r = R * (1 + G.breath * Math.sin(t * .3 + s.rphase));
+        const turn = G.even ? TURN : s.omega;
+        const slot = s.orbit + t * turn;
         let err = slot - Math.atan2(ey, ex);
         err = Math.atan2(Math.sin(err), Math.cos(err));
         /* desired velocity: inward or outward to the ring, plus along the ring */
         const vr = Math.max(-90, Math.min(90, (r - dist) * RADIAL));
-        const vt = s.omega * r + Math.max(-60, Math.min(60, err * ANGULAR));
-        const dvx = (ux * vr - uy * vt) * wide, dvy = (uy * vr + ux * vt) * tall;
+        const vt = turn * r + Math.max(-60, Math.min(60, err * ANGULAR));
+        const dvx = (ux * vr - uy * vt) * wide, dvy = uy * vr + ux * vt;
         const ramp = Math.min(1, (t - s.gatherAt) / 1.4);
         const gain = FOLLOW * (.25 + .75 * ramp * ramp);
         ax += (dvx - s.vx) * gain;
@@ -266,8 +351,8 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
         /* a little wander stays */
         ax += WANDER * .35 * Math.sin(t * s.f1 + s.p1);
         ay += WANDER * .35 * Math.sin(t * s.f1 * 1.3 + s.p3);
-        if (s.x > s.maxX) ax -= (s.x - s.maxX) * WALL;
-        repel(s, (x, y) => { ax += x; ay += y; }, 1);
+        /* the ring is clear of the mark. only the other sparks push */
+        repel(s, (x, y) => { ax += x; ay += y; }, 1, false);
       } else {
         if (reduce) continue;
         /* sine wander */
@@ -291,7 +376,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       if (sp > cap) { s.vx *= cap / sp; s.vy *= cap / sp; }
       s.x += s.vx * dt; s.y += s.vy * dt;
       /* hard clamp */
-      s.x = Math.min(w - PAD, Math.max(PAD, s.x));
+      s.x = Math.min(w - EDGE, Math.max(EDGE, s.x));
       s.y = Math.min(h - PAD, Math.max(PAD, s.y));
     }
     draw();
@@ -322,17 +407,23 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     ctx.globalAlpha = 1;
   }
 
+  function word(text, font, x, y) {
+    if (pen) pen.word(ctx, text, font, x, y, INK);
+    else { ctx.font = font; ctx.fillText(text, x, y); }
+  }
+
   function draw() {
     ctx.clearRect(0, 0, G.w, G.h);
-    if (night) drawLight();
+    if (night) { if (pen) pen.light(ctx, LIGHT, lightAt, G.box); else drawLight(); }
     ctx.fillStyle = INK;
     ctx.textBaseline = 'middle';
     ctx.textAlign = 'left';
     const q = 1 / G.dpr;
     const now = performance.now();
     for (const s of sparks) {
-      /* flight trail */
-      if (s.trail.length) {
+      /* flight trail. a pen draws it as one line */
+      if (pen) pen.trail(ctx, s, INK, now);
+      else if (s.trail.length) {
         for (let i = s.trail.length - 1; i >= 0; i--) {
           const p = s.trail[i], age = (now - p.t) / 420;
           if (age >= 1) { s.trail.splice(0, i + 1); break; }
@@ -355,21 +446,29 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       ctx.globalAlpha = s.vis * (night ? .6 + .4 * glow : 1);
       /* snapped pixel, hollow for a control */
       const px = Math.round((s.x - PX / 2) / q) * q, py = Math.round((s.y - PX / 2) / q) * q;
-      ctx.fillRect(px, py, PX, PX);
-      if (s.node.control) ctx.clearRect(px + q, py + q, PX - 2 * q, PX - 2 * q);
+      if (pen) pen.dot(ctx, s.x, s.y, PX, !!s.node.control, INK, s.id);
+      else {
+        ctx.fillRect(px, py, PX, PX);
+        if (s.node.control) ctx.clearRect(px + q, py + q, PX - 2 * q, PX - 2 * q);
+      }
       ctx.globalAlpha = s.vis;
       if (s.alpha < .01) continue;
-      ctx.globalAlpha = s.vis * s.alpha;
-      const lx = s.x + 10;
+      /* the label fades from one side to the other */
+      const lx = labelX(s, s.side);
       ctx.font = LABEL;
-      ctx.fillText(s.node.label, lx, s.y);
+      if (s.flip < .99) { ctx.globalAlpha = s.vis * s.alpha * (1 - s.flip); word(s.node.label, LABEL, labelX(s, 0), s.y); }
+      if (s.flip > .01) { ctx.globalAlpha = s.vis * s.alpha * s.flip; word(s.node.label, LABEL, labelX(s, 1), s.y); }
       if (s.peek > .01 && s.peekLine) {
         ctx.globalAlpha = s.vis * s.alpha * s.peek;
         ctx.font = PEEK;
-        ctx.fillText(clip(s.peekLine, Math.min(300, G.w - lx - PAD)), lx, s.y + 22);
+        word(clip(s.peekLine, Math.min(300, G.w - lx - PAD)), PEEK, lx, s.y + 22);
       }
+      /* a loop around a label under the pointer */
+      ctx.globalAlpha = s.vis;
+      if (pen && s.loop > .03) pen.loop(ctx, Math.min(s.x - 4, lx - 2), Math.max(s.x + 4, lx + s.labelW + 2), s.y, s.loop, INK, s.id);
     }
     ctx.globalAlpha = 1;
+    if (pen) pen.dust(ctx, INK, now);
   }
 
   /* ellipsis clip */
@@ -391,12 +490,14 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
   /* curved flight */
   const easeInOut = k => k < .5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
   const easeOut = k => 1 - Math.pow(1 - k, 3);
-  function fly(s, to, ms, easing, done) {
+  /* curve is how much the path bends, as a part of its length. carry is the speed that the
+     spark keeps at the end, along the path, so that it goes on into its drift */
+  function fly(s, to, ms, easing, done, curve = .35, carry = 0) {
     if (reduce) { s.x = to.x; s.y = to.y; done(); return; }
     const x0 = s.x, y0 = s.y, t0 = performance.now();
     const dx = to.x - x0, dy = to.y - y0, d = Math.hypot(dx, dy) || 1;
     const side = Math.random() < .5 ? -1 : 1;
-    const bend = side * Math.min(140, d * .35) * (.6 + Math.random() * .8);
+    const bend = side * Math.min(400 * curve, d * curve) * (.6 + Math.random() * .8);
     const cx = x0 + dx * .5 - dy / d * bend, cy = y0 + dy * .5 + dx / d * bend;
     let lastTrail = 0;
     s.flying = true;
@@ -409,7 +510,13 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       /* carry velocity */
       s.vx = (nx - s.x) * 60 * .35; s.vy = (ny - s.y) * 60 * .35;
       s.x = nx; s.y = ny;
-      if (k < 1) requestAnimationFrame(frame); else { s.flying = false; done(); }
+      if (k < 1) { requestAnimationFrame(frame); return; }
+      if (carry) {
+        const tx = to.x - cx, ty = to.y - cy, tl = Math.hypot(tx, ty) || 1;
+        s.vx = tx / tl * carry; s.vy = ty / tl * carry;
+      }
+      s.flying = false;
+      done();
     })(t0);
   }
 
@@ -425,31 +532,48 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     fly(s, G.box, dropped ? 260 : 680, dropped ? easeOut : easeInOut, () => {
       s.absorbed = true;
       s.vx = 0; s.vy = 0;
+      /* chalk dust falls from the box at night */
+      if (pen && night) pen.puff(G.box.x, G.box.y + G.box.h / 2);
       on.land && on.land(s);
     });
     return true;
   }
 
-  /* fly out of box */
+  /* fly out of box. the spark goes to a free place out of the mark, so nothing pushes it when
+     it gets there. some directions are tried, and the one with the most room is used */
+  const easeOutSoft = k => { const a = k * k * (3 - 2 * k); return 1 - (1 - a) * (1 - a); };
   function emit(s) {
-    s.x = G.box.x; s.y = G.box.y;
+    const bx = G.box.x, by = G.box.y;
+    s.x = bx; s.y = by;
     s.absorbed = false;
-    const a = Math.random() * Math.PI * 2;
-    const r = 150 + Math.random() * 90;
-    const to = {
-      x: Math.min(s.maxX, Math.max(G.w * .12, G.box.x + Math.cos(a) * r)),
-      y: Math.min(G.h * .88, Math.max(G.h * .12, G.box.y + Math.sin(a) * r))
-    };
-    fly(s, to, 900, easeOut, () => {});
+    const m = G.mark, hw = m.w / 2 + 16, hh = m.h / 2 + 16;
+    const x1 = G.w * .12, x2 = Math.max(x1, s.maxX), y1 = G.h * .12, y2 = G.h * .88;
+    let to = null, best = -Infinity;
+    for (let i = 0; i < 14; i++) {
+      const a = Math.random() * Math.PI * 2, ux = Math.cos(a), uy = Math.sin(a);
+      /* how far the mark goes in this direction, from the box */
+      const ex = ux > 0 ? (m.x + hw - bx) / ux : ux < 0 ? (m.x - hw - bx) / ux : Infinity;
+      const ey = uy > 0 ? (m.y + hh - by) / uy : uy < 0 ? (m.y - hh - by) / uy : Infinity;
+      const r = Math.min(ex, ey) + 24 + Math.random() * 60;
+      const p = { x: Math.min(x2, Math.max(x1, bx + ux * r)), y: Math.min(y2, Math.max(y1, by + uy * r)) };
+      /* room: the distance out of the mark, and the distance from the other sparks. a short way is better */
+      let room = Math.min(40, Math.max(Math.abs(p.x - m.x) - hw, Math.abs(p.y - m.y) - hh));
+      for (const o of sparks) if (o !== s && !o.absorbed) room = Math.min(room, Math.hypot(o.x - p.x, o.y - p.y) - 50);
+      const score = room - Math.hypot(p.x - bx, p.y - by) * .08;
+      if (score > best) { best = score; to = p; }
+    }
+    const d = Math.hypot(to.x - bx, to.y - by);
+    /* a soft start, a long slow end, and a path with little bend */
+    fly(s, to, 700 + d * 1.3, easeOutSoft, () => {}, .12, 9);
   }
 
   /* nearest orbit slots */
   function assignOrbits() {
     const free = sparks.filter(s => !s.absorbed);
     if (!free.length) return;
-    const m = G.mark;
+    const wide = G.rx / (G.ry || 1) || 1;
     const TAU = Math.PI * 2;
-    const withAngle = free.map(s => ({ s, a: Math.atan2((s.y - m.y) / (G.w > G.h ? 1 : 1.25), s.x - m.x) }))
+    const withAngle = free.map(s => ({ s, a: Math.atan2(s.y - G.cy, (s.x - G.cx) / wide) }))
       .sort((p, q) => p.a - q.a);
     const gap = TAU / withAngle.length;
     /* circular mean offset */
@@ -458,7 +582,7 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
     const offset = Math.atan2(sy, sx);
     withAngle.forEach((p, i) => {
       /* cancel elapsed time */
-      p.s.orbit = offset + i * gap - t * p.s.omega;
+      p.s.orbit = offset + i * gap - t * (G.even ? TURN : p.s.omega);
       p.s.gatherAt = t;
     });
   }
@@ -487,7 +611,8 @@ export function createSparks({ canvas, field, mark, box, reader, buttons, tree, 
       const d = Math.hypot(s.x - x, s.y - y);
       if (d < HIT && d < bd) { best = s; bd = d; }
       /* label hit */
-      if (s.alpha > .2 && x >= s.x + 6 && x <= s.x + 14 + s.labelW && Math.abs(y - s.y) <= 13) {
+      const lx = labelX(s, s.side);
+      if (s.alpha > .2 && x >= lx - 4 && x <= lx + s.labelW + 4 && Math.abs(y - s.y) <= 13) {
         const dl = Math.abs(y - s.y);
         if (dl < bd) { best = s; bd = dl; }
       }

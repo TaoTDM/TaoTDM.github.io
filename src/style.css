@@ -1,3 +1,19 @@
+/* screen fonts. the files are in public/fonts. the paragraph font is one fixed style of shantell sans */
+@font-face {
+  font-family: 'Gaegu';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts/gaegu.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Shantell Sans';
+  font-style: normal;
+  font-weight: 350;
+  font-display: swap;
+  src: url('/fonts/shantell-sans-text.woff2') format('woff2');
+}
+
 /* tokens */
 
 :root {
@@ -58,7 +74,10 @@ html, body {
   gap: 1.4rem;
   z-index: 3;
   user-select: none;
+  /* the mark takes no pointer, only its parts do. a spark can then be tapped where it goes across the empty part of the reader */
+  pointer-events: none;
 }
+.mark-box, .reader.reading, .page.idle a { pointer-events: auto; }
 
 .mark-box {
   display: flex;
@@ -228,8 +247,12 @@ html, body {
   pointer-events: none;
 }
 .keys svg { display: block; }
-@media (pointer: fine) {
+@media (pointer: fine) and (hover: hover) {
   .keys.show { animation: keysin 900ms ease-out both, blink 2.4s ease-in-out 900ms infinite; }
+}
+/* touch screens have no arrow keys. the hint is not in the layout at all */
+@media (pointer: coarse), (hover: none) {
+  .keys { display: none; }
 }
 @keyframes keysin { from { opacity: 0; } to { opacity: .6; } }
 @keyframes blink { 0%, 100% { opacity: .6; } 50% { opacity: .2; } }

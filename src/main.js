@@ -6,6 +6,7 @@ import { createReader } from './reader.js';
 import { createSound } from './sound.js';
 import { createTheme } from './theme.js';
 import { buildPaper } from './paper.js';
+import { pen } from './hand.js';
 
 const field = document.getElementById('void');
 const canvas = document.getElementById('sky');
@@ -26,6 +27,17 @@ function toast(word) {
 
 const sound = createSound();
 const theme = createTheme();
+
+/* the draw-on has pencil sounds, at the times of hand.css: four strokes for the box line, a
+   tap for each letter, and a stroke for each line of the tagline. a browser plays them only
+   if it lets the page make sound before the first tap or key. if not, the draw-on is silent */
+const INTRO = [['gather', 0], ['land', 400], ['land', 520], ['land', 640], ['select', 780], ['release', 1000]];
+if (pen.intro) sound.warm(INTRO.map(([name]) => name));
+let introTimers = [];
+addEventListener('tao:draw', () => {
+  introTimers.forEach(clearTimeout);
+  introTimers = INTRO.map(([name, ms]) => setTimeout(() => sound.play(name, true), ms));
+});
 
 /* settings pages */
 function metaFor(item) {
@@ -75,7 +87,7 @@ const reader = createReader({
 });
 
 const sparks = createSparks({
-  canvas, field, mark, box, reader: readerEl, buttons, tree: [...TREE, SETTINGS],
+  canvas, field, mark, box, reader: readerEl, buttons, tree: [...TREE, SETTINGS], pen,
   on: {
     select: s => select(s),
     land: s => {

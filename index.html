@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-hand>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -29,9 +29,10 @@
 <meta name="twitter:description" content="Geo AI @ UT, GISense Lab.">
 <meta name="twitter:image" content="https://taotdm.com/images/og-void.png">
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Libre+Franklin:wght@400;500&display=swap">
+<!-- the screen fonts are files of the site, in public/fonts. the hand font is needed for the first paint -->
+<link rel="preload" href="/fonts/gaegu.woff2" as="font" type="font/woff2" crossorigin>
+<!-- the fonts of the print page. this sheet does not hold back the first paint -->
+<link rel="stylesheet" media="print" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=Libre+Franklin:wght@400;500&display=swap">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>

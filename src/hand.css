@@ -1,0 +1,265 @@
+/* the hand-drawn look. index.html sets data-hand on the root. hand.js does the moving parts */
+
+:root[data-hand] {
+  --hand: 'Gaegu', cursive;
+  --hand-size: 1.15;
+  --text-font: 'Shantell Sans', cursive;
+  --text-size: .95;
+  --text-weight: 350;
+  --text-axes: 'INFM' 55, 'BNCE' 12;
+  --boil: none;
+  --boil-box: none;
+}
+/* the screen text. the print page keeps the serif */
+:root[data-hand] .void { font-family: var(--text-font); }
+/* the skip link has the hand font, so that the page does not load one more font for it */
+:root[data-hand] .skip { font-family: var(--hand); font-size: 1rem; }
+
+/* the mark and the tagline, in the hand font */
+:root[data-hand] .mark-box {
+  font-family: var(--hand);
+  font-size: calc(2rem * var(--hand-size));
+  border-width: 1.5px;
+  filter: var(--boil-box);
+}
+:root[data-hand] .mark-box::after { border-width: 1.5px; }
+:root[data-hand] .reader { filter: var(--boil); }
+:root[data-hand] .page.idle {
+  font-family: var(--hand);
+  font-size: calc(1.5rem * var(--hand-size));
+  line-height: 1.1;
+}
+:root[data-hand] .page.say span { font-size: calc(1.15rem * var(--hand-size)); }
+
+/* the paragraphs */
+:root[data-hand] .page .text {
+  font-size: calc(.98rem * var(--text-size));
+  font-weight: var(--text-weight);
+  font-variation-settings: var(--text-axes);
+}
+/* the small heads and dates, in the hand font, not in capitals */
+:root[data-hand] .page .head,
+:root[data-hand] .page .meta,
+:root[data-hand] #toast {
+  font-family: var(--hand);
+  font-size: calc(.95rem * var(--hand-size));
+  letter-spacing: 0;
+  text-transform: none;
+}
+:root[data-hand] .page .head { margin-bottom: .1rem; line-height: 1.1; }
+:root[data-hand] .page .meta { font-size: calc(.8rem * var(--hand-size)); }
+
+/* the picker */
+.hand-picker {
+  position: fixed;
+  left: .75rem;
+  bottom: .6rem;
+  z-index: 7;
+  font: 11px/1.5 system-ui, sans-serif;
+  color: var(--ink);
+  opacity: .55;
+  max-width: calc(100vw - 1.5rem);
+}
+.hand-picker:hover { opacity: 1; }
+.hand-picker p { margin: 0; }
+.hand-picker a { margin-right: .35em; color: inherit; text-decoration: none; }
+.hand-picker a:hover { text-decoration: underline; }
+.hand-picker a.on { text-decoration: underline; text-underline-offset: 3px; }
+@media print { .hand-picker { display: none; } }
+
+/* the box line. an svg path is in place of the border. the night box has no smooth glow:
+   the canvas draws rays around it */
+:root[data-hand] .mark-box:has(.hand-frame) { border-color: transparent; }
+:root[data-hand][data-theme="night"] .mark-box { box-shadow: none; }
+:root[data-hand] .mark-box.pulse::after { animation: none; }
+.hand-frame {
+  position: absolute;
+  left: -1.5px;
+  top: -1.5px;
+  width: calc(100% + 3px);
+  height: calc(100% + 3px);
+  overflow: visible;
+  pointer-events: none;
+}
+.hand-frame path { fill: none; stroke: var(--ink); stroke-width: 1.5; stroke-linecap: square; }
+
+/* shared moves. write shows a thing from left to right. erase hides it from left to right */
+@keyframes handwrite { from { clip-path: inset(-25% 100% -25% -10%); } to { clip-path: inset(-25% -10% -25% -10%); } }
+@keyframes handerase { from { clip-path: inset(-25% -10% -25% -10%); } to { clip-path: inset(-25% -10% -25% 110%); } }
+@keyframes handline { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes handfade { from { opacity: 0; } to { opacity: 1; } }
+
+/* draw-on. the box line, then the three letters, then the two lines of the tagline */
+/* the mark is hidden until hand.js has the fonts. if the script does not run, the mark shows after a time */
+:root[data-hand]:not([data-ready]) .mark { animation: handfade 1ms 3s both; }
+:root[data-draw="go"] .hand-frame path { stroke-dasharray: 1; animation: handline 450ms cubic-bezier(.4, 0, .3, 1) both; }
+:root[data-draw="go"][data-theme="night"] .mark-box { animation: handfade 450ms both; }
+:root[data-draw="go"] .mark-box > span { animation: handwrite 150ms linear both; }
+:root[data-draw="go"] .mark-box > span:nth-of-type(1) { animation-delay: 380ms; }
+:root[data-draw="go"] .mark-box > span:nth-of-type(2) { animation-delay: 500ms; }
+:root[data-draw="go"] .mark-box > span:nth-of-type(3) { animation-delay: 620ms; }
+:root[data-draw="go"] .page.idle span { animation: handwrite 280ms cubic-bezier(.3, .1, .3, 1) 760ms both; }
+:root[data-draw="go"] .page.idle span + span { animation-delay: 980ms; }
+
+/* pages. a page writes itself in. the plain erase is for when the pixel eraser does not run */
+:root[data-hand] .page.in,
+:root[data-hand] .page.idle { animation: handwrite 360ms cubic-bezier(.3, .1, .3, 1) both; }
+:root[data-hand] .page.idle.first:not(.out) { animation: none; }
+:root[data-hand] .page.out { animation: handerase 160ms linear both; }
+
+/* the eraser. hand.js puts a copy of the old page in .hand-ghost. the mask of the copy has a
+   soft edge that goes from left to right. the mask is 2.48 times as wide as the copy, so the
+   edge starts and ends off the text */
+:root[data-hand] .page.out[data-wipe="1"] { animation: none; visibility: hidden; }
+.hand-ghost {
+  position: absolute;
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask: linear-gradient(90deg, transparent 46.37%, #000 53.63%) 100% 0 / 248% 100% no-repeat;
+  mask: linear-gradient(90deg, transparent 46.37%, #000 53.63%) 100% 0 / 248% 100% no-repeat;
+  animation: handwipe 520ms cubic-bezier(.4, 0, .3, 1) both;
+}
+@keyframes handwipe { to { -webkit-mask-position: 0 0; mask-position: 0 0; } }
+.hand-ghost-in {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 1.5rem;
+  line-height: 1.3;
+  filter: var(--boil);
+}
+.hand-ghost .page { animation: none !important; }
+.hand-ghost .text { overflow: hidden; }
+/* the next page comes in behind the eraser: the same edge, the other way round, with the same
+   motion. the page comes into the reader 160ms after the erase starts. the time before the
+   start is less than zero, so its edge is only 45ms behind the edge of the eraser */
+:root[data-hand] .page[data-reveal=""]:not(.out) {
+  -webkit-mask: linear-gradient(90deg, #000 46.37%, transparent 53.63%) 100% 0 / 248% 100% no-repeat;
+  mask: linear-gradient(90deg, #000 46.37%, transparent 53.63%) 100% 0 / 248% 100% no-repeat;
+  animation: handwipe 520ms cubic-bezier(.4, 0, .3, 1) -115ms both;
+}
+/* after that the page has no mask and does not write itself again */
+:root[data-hand] .page[data-reveal="done"]:not(.out) { animation: none; }
+
+/* links. a faint scribble is always below a link. a dark one is drawn over it on hover */
+:root[data-hand] {
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.5C14 1.5 26 5 40 3S68 1.8 82 3.6S96 3 99 2.6' fill='none' stroke='%23000' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --scribble-faint: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3C16 4.6 30 1.6 46 3.4S74 4.4 99 3' fill='none' stroke='%23000' stroke-opacity='.3' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 16'%3E%3Cpath d='M2 9L7 14L18 2' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+}
+:root[data-hand][data-theme="night"] {
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.5C14 1.5 26 5 40 3S68 1.8 82 3.6S96 3 99 2.6' fill='none' stroke='%23fff' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --scribble-faint: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3C16 4.6 30 1.6 46 3.4S74 4.4 99 3' fill='none' stroke='%23fff' stroke-opacity='.35' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+}
+:root[data-hand] .page.idle a,
+:root[data-hand] .page .text a,
+:root[data-hand] .page .text button {
+  padding-bottom: 3px;
+  text-decoration: none;
+  background-image: var(--scribble), var(--scribble-faint);
+  background-repeat: no-repeat;
+  background-position: 0 100%, 0 100%;
+  background-size: 0% 6px, 100% 6px;
+  transition: background-size 260ms ease-out;
+}
+:root[data-hand] .page.idle a:hover, :root[data-hand] .page.idle a:focus-visible,
+:root[data-hand] .page .text a:hover, :root[data-hand] .page .text a:focus-visible,
+:root[data-hand] .page .text button:hover, :root[data-hand] .page .text button:focus-visible {
+  background-size: 100% 6px, 100% 6px;
+}
+/* a touch screen has no hover. the dark scribble is always there */
+@media (pointer: coarse) {
+  :root[data-hand] .page.idle a,
+  :root[data-hand] .page .text a,
+  :root[data-hand] .page .text button { background-size: 100% 6px, 100% 6px; }
+}
+
+/* pips, as tally marks. the marks up to this page are dark. each fifth mark goes across the four before it */
+:root[data-hand] .pips { left: -2px; }
+:root[data-hand] .pips button { width: 7px; }
+:root[data-hand] .pips button::after {
+  left: 3px;
+  top: 1px;
+  width: 0;
+  height: 14px;
+  border: 0;
+  border-left: 1.5px solid var(--ink);
+  border-radius: 1px;
+  background: none;
+  opacity: .22;
+  transform: rotate(5deg);
+}
+:root[data-hand] .pips button:nth-of-type(even)::after { transform: rotate(-3deg); }
+:root[data-hand] .pips button:hover::after { opacity: .6; }
+:root[data-hand] .pips button.on::after,
+:root[data-hand] .pips button:has(~ button.on)::after { opacity: 1; }
+:root[data-hand] .pips button:nth-of-type(5n) { width: 5px; margin-right: 7px; }
+:root[data-hand] .pips button:nth-of-type(5n)::after {
+  left: -31px;
+  top: 7px;
+  width: 36px;
+  height: 0;
+  border-left: 0;
+  border-top: 1.5px solid var(--ink);
+  transform: rotate(-24deg);
+}
+/* the last one closes the section. it is a small cross */
+:root[data-hand] .pips button.end { width: 14px; margin: 0 0 0 4px; }
+:root[data-hand] .pips button.end::after {
+  content: '\00d7';
+  left: 2px;
+  top: -2px;
+  width: auto;
+  height: auto;
+  border: 0;
+  transform: none;
+  font: 400 16px/1 var(--hand);
+  color: var(--ink);
+  opacity: .4;
+}
+:root[data-hand] .pips button.end:hover::after { opacity: 1; }
+
+/* the hint: the word tap and an arrow, above the box */
+.hand-note {
+  position: absolute;
+  left: 58%;
+  bottom: calc(100% + 3px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  color: var(--ink);
+  font: normal 400 calc(1.05rem * var(--hand-size)) / 1 var(--hand);
+  opacity: 0;
+  pointer-events: none;
+}
+.hand-note b { margin-left: 16px; font-weight: 400; }
+.hand-note svg { display: block; overflow: visible; }
+.hand-note path { fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 1; stroke-dashoffset: 1; }
+.hand-note[data-state] { opacity: 1; }
+.hand-note[data-state="in"] b { animation: handwrite 260ms linear both; }
+.hand-note[data-state="in"] .shaft { animation: handline 320ms ease-out 240ms both; }
+.hand-note[data-state="in"] .head { animation: handline 160ms ease-out 540ms both; }
+.hand-note[data-state="out"] { animation: handerase 220ms linear both; }
+.hand-note[data-state="out"] path { stroke-dashoffset: 0; }
+
+/* the toast is written, and a tick comes after it */
+:root[data-hand] #toast { filter: var(--boil); }
+:root[data-hand] #toast.show { animation: handwrite 300ms linear both; }
+:root[data-hand] #toast::after {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: .8em;
+  margin-left: .35em;
+  background: var(--ink);
+  -webkit-mask: var(--tick) no-repeat center / contain;
+  mask: var(--tick) no-repeat center / contain;
+  clip-path: inset(0 100% 0 0);
+}
+:root[data-hand] #toast.show::after { clip-path: inset(0 0 0 0); transition: clip-path 200ms linear 300ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  :root[data-hand] .page.in, :root[data-hand] .page.out, :root[data-hand] .page.idle,
+  :root[data-hand] #toast.show, .hand-note[data-state] b, .hand-note[data-state] path, .hand-note[data-state="out"] { animation-duration: 1ms; animation-delay: 0s; }
+}
