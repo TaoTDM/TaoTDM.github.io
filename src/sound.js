@@ -25,14 +25,20 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
   let enabled = read();
   const files = new Map();
 
-  /* sfx files. the build gives the list of the files in public/sfx. they load when the page
-     has free time, so that they do not slow the first paint. until a file is in, its
-     built-in sound plays. warm loads some files at once, for a sound that is needed early */
+  /* sfx files. the build gives the list of the files in public/sfx. a file with -night in its
+     name is for the night theme, for example page-night.wav. the files of the theme that shows
+     load when the page has free time, so that they do not slow the first paint. the files of
+     the other theme load when the theme changes. until a file is in, the sound of the other
+     theme plays, or the built-in sound. warm loads some files at once, for a sound that is
+     needed early */
   const asked = new Set();
+  const isNight = () => document.documentElement.dataset.theme === 'night';
   const load = only => {
+    const night = isNight();
     for (const file of __SFX__) {
       const name = file.replace(/\.\w+$/, '');
-      if (!FILES.includes(name) || asked.has(file) || (only && !only.includes(name))) continue;
+      const base = name.replace(/-night$/, '');
+      if (!FILES.includes(base) || asked.has(file) || (name !== base) !== night || (only && !only.includes(base))) continue;
       asked.add(file);
       const a = new Audio();
       a.preload = 'auto';
@@ -43,6 +49,7 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
   };
   if (window.requestIdleCallback) requestIdleCallback(() => load(), { timeout: 2000 }); else setTimeout(load, 400);
   const warm = names => load(names);
+  new MutationObserver(() => load()).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   function read() {
     try { return localStorage.getItem(storageKey) !== 'off'; } catch { return true; }
@@ -132,7 +139,8 @@ export function createSound({ storageKey = 'tao.sound', hoverSounds = false } = 
   function play(name, fileOnly = false) {
     if (!enabled) return;
     if (name === 'hover' && !hoverSounds) return;
-    const file = files.get(name);
+    /* at night the chalk and eraser files come first */
+    const file = (isNight() && files.get(name + '-night')) || files.get(name);
     if (file) {
       const a = file.cloneNode();
       a.volume = Math.min(1, VOLUME * 4);

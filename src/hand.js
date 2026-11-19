@@ -362,23 +362,30 @@ function addFilters() {
   document.body.appendChild(wrap.firstChild);
 }
 
-/* the box line. an svg path is in place of the border, so that it can be drawn from start to end */
+/* the box line. an svg path is in place of the border, so that it can be drawn from start to end.
+   the path is made again each time the size of the box changes. the box grows with the text
+   beside it, and on a phone its size also changes with no change of the window */
 function addFrame(box) {
   const NS = 'http://www.w3.org/2000/svg';
   const svg = document.createElementNS(NS, 'svg');
   svg.setAttribute('class', 'hand-frame');
   svg.setAttribute('aria-hidden', 'true');
+  /* if the path is old for a moment, it still goes around all of the box */
+  svg.setAttribute('preserveAspectRatio', 'none');
   const path = document.createElementNS(NS, 'path');
   path.setAttribute('pathLength', '1');
   svg.appendChild(path);
   box.appendChild(svg);
+  let fw = 0, fh = 0;
   const fit = () => {
     const w = box.offsetWidth, h = box.offsetHeight, k = .75;
-    if (!w || !h) return;
+    if (!w || !h || (w === fw && h === fh)) return;
+    fw = w; fh = h;
     svg.setAttribute('viewBox', '0 0 ' + w + ' ' + h);
     path.setAttribute('d', 'M' + k + ' ' + k + 'H' + (w - k) + 'V' + (h - k) + 'H' + k + 'Z');
   };
   fit();
+  if (window.ResizeObserver) new ResizeObserver(fit).observe(box);
   addEventListener('resize', fit);
   return fit;
 }

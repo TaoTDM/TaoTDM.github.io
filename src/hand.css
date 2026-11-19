@@ -37,6 +37,10 @@
   font-weight: var(--text-weight);
   font-variation-settings: var(--text-axes);
 }
+/* the text has no scroll bar. a long text still moves with a finger, a wheel or a trackpad.
+   the room at the bottom is for the line below a link in the last line */
+:root[data-hand] .page .text { padding-bottom: 4px; scrollbar-width: none; -ms-overflow-style: none; }
+:root[data-hand] .page .text::-webkit-scrollbar { display: none; }
 /* the small heads and dates, in the hand font, not in capitals */
 :root[data-hand] .page .head,
 :root[data-hand] .page .meta,
@@ -142,14 +146,15 @@
 /* after that the page has no mask and does not write itself again */
 :root[data-hand] .page[data-reveal="done"]:not(.out) { animation: none; }
 
-/* links. a faint scribble is always below a link. a dark one is drawn over it on hover */
+/* links. a faint scribble is always below a link. a dark one is drawn over it on hover.
+   the two have the same shape, so that a link never shows two lines */
 :root[data-hand] {
-  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.5C14 1.5 26 5 40 3S68 1.8 82 3.6S96 3 99 2.6' fill='none' stroke='%23000' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3C16 4.6 30 1.6 46 3.4S74 4.4 99 3' fill='none' stroke='%23000' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
   --scribble-faint: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3C16 4.6 30 1.6 46 3.4S74 4.4 99 3' fill='none' stroke='%23000' stroke-opacity='.3' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
   --tick: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 16'%3E%3Cpath d='M2 9L7 14L18 2' fill='none' stroke='%23000' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
 :root[data-hand][data-theme="night"] {
-  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3.5C14 1.5 26 5 40 3S68 1.8 82 3.6S96 3 99 2.6' fill='none' stroke='%23fff' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
+  --scribble: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3C16 4.6 30 1.6 46 3.4S74 4.4 99 3' fill='none' stroke='%23fff' stroke-width='1.3' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
   --scribble-faint: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 6' preserveAspectRatio='none'%3E%3Cpath d='M1 3C16 4.6 30 1.6 46 3.4S74 4.4 99 3' fill='none' stroke='%23fff' stroke-opacity='.35' stroke-width='1.2' stroke-linecap='round' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E");
 }
 :root[data-hand] .page.idle a,
@@ -168,11 +173,11 @@
 :root[data-hand] .page .text button:hover, :root[data-hand] .page .text button:focus-visible {
   background-size: 100% 6px, 100% 6px;
 }
-/* a touch screen has no hover. the dark scribble is always there */
+/* a touch screen has no hover. only the dark scribble is there, and it does not move */
 @media (pointer: coarse) {
   :root[data-hand] .page.idle a,
   :root[data-hand] .page .text a,
-  :root[data-hand] .page .text button { background-size: 100% 6px, 100% 6px; }
+  :root[data-hand] .page .text button { background-size: 100% 6px, 0% 6px; transition: none; }
 }
 
 /* pips, as tally marks. the marks up to this page are dark. each fifth mark goes across the four before it */

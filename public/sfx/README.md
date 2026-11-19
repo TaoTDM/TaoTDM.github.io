@@ -37,4 +37,18 @@ file is a short cut from the recording, at one loudness.
 | `page.wav`    | quiet page turn - 7, the flick only              | SpaceJoe   | 484967       |
 | `back.wav`    | quiet page turn - 4, the flick only              | SpaceJoe   | 484964       |
 
+the night theme has its own set: chalk on a blackboard, and a soft eraser in place of the
+page turn. a night file has the same name with `-night` at the end. if a night file is not
+there, the day file plays at night too.
+
+| file                | recording                                  | by          | freesound id |
+|---------------------|--------------------------------------------|-------------|--------------|
+| `select-night.wav`  | writing on black board, one stroke         | ta8keiteasy | 231453       |
+| `release-night.wav` | writing on black board, one stroke         | ta8keiteasy | 231453       |
+| `gather-night.wav`  | writing on black board, one stroke         | ta8keiteasy | 231453       |
+| `scatter-night.wav` | writing on black board, one stroke         | ta8keiteasy | 231453       |
+| `land-night.wav`    | writing on black board1, one tap           | ta8keiteasy | 231454       |
+| `page-night.wav`    | dry erase, the same cut, a little higher   | Zermonth    | 116637       |
+| `back-night.wav`    | dry erase: a felt eraser on a chalk tray   | Zermonth    | 116637       |
+
 `hover` has no file. it uses the built-in sound, and it is off by default.
